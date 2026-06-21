@@ -1,0 +1,56 @@
+﻿# Build artifacts
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# Binaries and objects
+*.exe
+*.dll
+*.lib
+*.obj
+*.o
+*.pdb
+*.ilk
+
+# IDE and editor
+.vs/
+.vscode/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+CMakeUserPresets.json
+.idea/
+
+# Runtime outputs
+logs/
+*.log
+
+# Local production miner configs (machine-specific, may contain secrets)
+config/*.local.json
+config/*secret*.json
+
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.secret
+*.secrets
+*credentials*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~

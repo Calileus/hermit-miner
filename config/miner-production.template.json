@@ -1,0 +1,25 @@
+{
+  "node_id": "CP-PROD-01",
+  "worker_id": "prod01",
+  "payout_address": "REPLACE_WITH_REAL_WALLET_ADDRESS",
+  "pool": {
+    "enabled": true,
+    "host": "REPLACE_WITH_POOL_HOST",
+    "port": 3333,
+    "username": "REPLACE_WITH_REAL_WALLET_ADDRESS.prod01",
+    "password": "REPLACE_WITH_POOL_PASSWORD",
+    "notify_timeout_sec": 30,
+    "max_cycles": 0,
+    "reconnect_initial_sec": 1,
+    "reconnect_max_sec": 30
+  },
+  "hashing": {
+    "prefix": "hello-bitcoin",
+    "difficulty_bits": 20,
+    "threads": 2,
+    "report_interval_ms": 500
+  },
+  "logging": {
+    "output": "logs/miner-prod01.log"
+  }
+}

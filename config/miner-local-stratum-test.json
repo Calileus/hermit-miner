@@ -1,0 +1,25 @@
+{
+  "node_id": "CP-TEST",
+  "worker_id": "test01",
+  "payout_address": "offline-wallet-placeholder",
+  "pool": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 3347,
+    "username": "offline-wallet-placeholder.test01",
+    "password": "x",
+    "notify_timeout_sec": 30,
+    "max_cycles": 3,
+    "reconnect_initial_sec": 1,
+    "reconnect_max_sec": 8
+  },
+  "hashing": {
+    "prefix": "hello-bitcoin",
+    "difficulty_bits": 20,
+    "threads": 2,
+    "report_interval_ms": 250
+  },
+  "logging": {
+    "output": "logs/miner-offline-stratum-test.log"
+  }
+}
