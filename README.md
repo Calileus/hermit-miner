@@ -73,6 +73,18 @@ Recommended pool identity pattern:
 - unique worker ID per machine
 - username format usually walletAddress.workerId
 
+Security note:
+
+- Prefer setting `pool.password_env` in config and supplying the real password via environment variable, instead of storing secrets in plaintext files.
+- `pool.host` supports both IP addresses and DNS hostnames.
+
+Example (PowerShell):
+
+```powershell
+$env:IMINE_POOL_PASSWORD = "your-real-password"
+./build/Release/i_mine --config config/miner-local-stratum.json
+```
+
 ## Run miner
 
 ```sh

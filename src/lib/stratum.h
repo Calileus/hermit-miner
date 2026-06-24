@@ -38,6 +38,7 @@ private:
 
     SocketType socket_fd_;
     bool connected_ = false;
+    bool wsa_started_ = false;
 
     bool send_line(const std::string& line);
     bool receive_line(std::string& out_line, std::uint32_t timeout_sec);

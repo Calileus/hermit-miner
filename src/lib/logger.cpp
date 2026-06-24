@@ -4,12 +4,15 @@
 #include <iostream>
 #include <chrono>
 #include <iomanip>
+#include <mutex>
 #include <regex>
 #include <sstream>
 
 namespace mining {
 
 namespace {
+
+std::mutex g_log_mutex;
 
 std::string redact_sensitive_fields(const std::string& input) {
     if (input.empty()) {
@@ -59,8 +62,15 @@ std::string Logger::get_timestamp() const {
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         now.time_since_epoch()) % 1000;
 
+    std::tm utc_tm{};
+#ifdef _WIN32
+    gmtime_s(&utc_tm, &time);
+#else
+    gmtime_r(&time, &utc_tm);
+#endif
+
     std::ostringstream oss;
-    oss << std::put_time(std::gmtime(&time), "%Y-%m-%dT%H:%M:%S");
+    oss << std::put_time(&utc_tm, "%Y-%m-%dT%H:%M:%S");
     oss << '.' << std::setfill('0') << std::setw(6) << (ms.count() * 1000) << 'Z';
     return oss.str();
 }
@@ -98,12 +108,12 @@ void Logger::log(LogLevel level, const std::string& component, const std::string
     }
     json_line << "}";
 
+    std::lock_guard<std::mutex> lock(g_log_mutex);
     std::ofstream log_file(filename_, std::ios_base::app);
     if (log_file.is_open()) {
         log_file << json_line.str() << "\n";
     }
 
-    // Also print to console for debugging
     std::cout << json_line.str() << "\n";
 }
 

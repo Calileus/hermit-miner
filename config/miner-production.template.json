@@ -8,6 +8,7 @@
     "port": 3333,
     "username": "REPLACE_WITH_REAL_WALLET_ADDRESS.prod01",
     "password": "REPLACE_WITH_POOL_PASSWORD",
+    "password_env": "IMINE_POOL_PASSWORD",
     "notify_timeout_sec": 30,
     "max_cycles": 0,
     "reconnect_initial_sec": 1,

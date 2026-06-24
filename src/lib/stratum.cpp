@@ -17,7 +17,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
-#include <arpa/inet.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -68,7 +68,7 @@ StratumClient::StratumClient(const std::string& host, std::uint16_t port, Logger
 StratumClient::~StratumClient() {
     close_socket(static_cast<NativeSocket>(socket_fd_));
 #ifdef _WIN32
-    if (connected_) {
+    if (wsa_started_) {
         WSACleanup();
     }
 #endif
@@ -76,35 +76,51 @@ StratumClient::~StratumClient() {
 
 bool StratumClient::connect_to_pool() {
 #ifdef _WIN32
-    WSADATA wsa{};
-    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-        logger_.error("stratum", node_id_, "WSAStartup failed");
-        return false;
+    if (!wsa_started_) {
+        WSADATA wsa{};
+        if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+            logger_.error("stratum", node_id_, "WSAStartup failed");
+            return false;
+        }
+        wsa_started_ = true;
     }
 #endif
 
-    NativeSocket fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (fd == kInvalidSocket) {
-        logger_.error("stratum", node_id_, "socket() failed");
+    std::string port_text = std::to_string(port_);
+    addrinfo hints{};
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    addrinfo* addrs = nullptr;
+    const int gai_rc = getaddrinfo(host_.c_str(), port_text.c_str(), &hints, &addrs);
+    if (gai_rc != 0 || addrs == nullptr) {
+        logger_.error("stratum", node_id_, "Pool host resolution failed", host_ + ":" + port_text);
         return false;
     }
 
-    sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port_);
-    if (inet_pton(AF_INET, host_.c_str(), &addr.sin_addr) != 1) {
-        logger_.error("stratum", node_id_, "Invalid pool host", host_);
+    NativeSocket connected_fd = kInvalidSocket;
+    for (addrinfo* it = addrs; it != nullptr; it = it->ai_next) {
+        NativeSocket fd = socket(it->ai_family, it->ai_socktype, it->ai_protocol);
+        if (fd == kInvalidSocket) {
+            continue;
+        }
+
+        if (connect(fd, it->ai_addr, static_cast<int>(it->ai_addrlen)) == 0) {
+            connected_fd = fd;
+            break;
+        }
+
         close_socket(fd);
-        return false;
     }
+    freeaddrinfo(addrs);
 
-    if (connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
+    if (connected_fd == kInvalidSocket) {
         logger_.error("stratum", node_id_, "connect() failed", host_ + ":" + std::to_string(port_));
-        close_socket(fd);
         return false;
     }
 
-    socket_fd_ = static_cast<SocketType>(fd);
+    socket_fd_ = static_cast<SocketType>(connected_fd);
     connected_ = true;
     logger_.info("stratum", node_id_, "Connected to pool", host_ + ":" + std::to_string(port_));
     return true;

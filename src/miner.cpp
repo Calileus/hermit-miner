@@ -6,6 +6,7 @@
 #include <atomic>
 #include <chrono>
 #include <csignal>
+#include <cstdlib>
 #include <cstdint>
 #include <fstream>
 #include <iomanip>
@@ -28,6 +29,7 @@ struct MinerConfig {
     std::string pool_host = "pool.example.com";
     std::uint32_t pool_port = 3333;
     std::string pool_password = "x";
+    std::string pool_password_env;
     bool pool_enabled = false;
     std::uint32_t pool_notify_timeout_sec = 30;
     std::uint32_t pool_max_cycles = 0;
@@ -117,11 +119,11 @@ bool parse_json_bool(const std::string& json, const std::string& key, bool& out)
     return true;
 }
 
-MinerConfig load_config(const std::string& path) {
-    MinerConfig cfg;
+bool load_config(const std::string& path, MinerConfig& cfg) {
+    cfg = MinerConfig{};
     const std::string json = read_text_file(path);
     if (json.empty()) {
-        return cfg;
+        return false;
     }
 
     std::string text_value;
@@ -142,11 +144,14 @@ MinerConfig load_config(const std::string& path) {
     if (parse_json_string(json, "host", text_value)) {
         cfg.pool_host = text_value;
     }
-    if (parse_json_uint(json, "port", uint_value) && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
+    if (parse_json_uint(json, "port", uint_value) && uint_value > 0U && uint_value <= 65535U) {
         cfg.pool_port = static_cast<std::uint32_t>(uint_value);
     }
     if (parse_json_string(json, "password", text_value)) {
         cfg.pool_password = text_value;
+    }
+    if (parse_json_string(json, "password_env", text_value)) {
+        cfg.pool_password_env = text_value;
     }
     if (parse_json_bool(json, "enabled", cfg.pool_enabled)) {
         // parsed
@@ -179,7 +184,7 @@ MinerConfig load_config(const std::string& path) {
         cfg.log_output = text_value;
     }
 
-    return cfg;
+    return true;
 }
 
 void print_usage() {
@@ -222,7 +227,10 @@ bool parse_args(int argc, char** argv, std::string& config_path, MinerConfig& cf
         const std::string value = argv[++i];
         if (arg == "--config") {
             config_path = value;
-            cfg = load_config(config_path);
+            if (!load_config(config_path, cfg)) {
+                std::cerr << "Failed to read config file: " << config_path << "\n";
+                return false;
+            }
         } else if (arg == "--prefix") {
             cfg.prefix = value;
         } else if (arg == "--bits") {
@@ -244,6 +252,82 @@ bool parse_args(int argc, char** argv, std::string& config_path, MinerConfig& cf
             std::cerr << "Unknown option: " << arg << "\n";
             return false;
         }
+    }
+
+    return true;
+}
+
+std::string pool_username(const MinerConfig& cfg);
+
+void apply_secret_overrides_from_env(MinerConfig& cfg, mining::Logger& logger) {
+    if (cfg.pool_password_env.empty()) {
+        return;
+    }
+
+#ifdef _WIN32
+    char* env_val = nullptr;
+    std::size_t env_len = 0;
+    const errno_t env_rc = _dupenv_s(&env_val, &env_len, cfg.pool_password_env.c_str());
+    const bool missing = (env_rc != 0 || env_val == nullptr || env_len == 0 || env_val[0] == '\0');
+    if (missing) {
+        if (env_val != nullptr) {
+            std::free(env_val);
+        }
+        logger.warn("config", cfg.node_id, "pool.password_env is set but environment variable is missing", cfg.pool_password_env);
+        return;
+    }
+
+    cfg.pool_password = env_val;
+    std::free(env_val);
+#else
+    const char* env_val = std::getenv(cfg.pool_password_env.c_str());
+    if (env_val == nullptr || env_val[0] == '\0') {
+        logger.warn("config", cfg.node_id, "pool.password_env is set but environment variable is missing", cfg.pool_password_env);
+        return;
+    }
+
+    cfg.pool_password = env_val;
+#endif
+    logger.info("config", cfg.node_id, "Loaded pool password from environment variable", cfg.pool_password_env);
+}
+
+bool validate_config(const MinerConfig& cfg, std::string& error_message) {
+    if (cfg.thread_count == 0U) {
+        error_message = "hashing.threads must be greater than 0";
+        return false;
+    }
+    if (cfg.report_interval_ms == 0U) {
+        error_message = "hashing.report_interval_ms must be greater than 0";
+        return false;
+    }
+
+    if (!cfg.pool_enabled) {
+        return true;
+    }
+
+    if (cfg.pool_host.empty()) {
+        error_message = "pool.host must be set when pool.enabled=true";
+        return false;
+    }
+    if (cfg.pool_port == 0U || cfg.pool_port > 65535U) {
+        error_message = "pool.port must be in range 1..65535 when pool.enabled=true";
+        return false;
+    }
+    if (pool_username(cfg).empty()) {
+        error_message = "pool.username (or payout_address+worker_id) must be set when pool.enabled=true";
+        return false;
+    }
+    if (cfg.pool_password.empty()) {
+        error_message = "pool.password is empty; set pool.password or pool.password_env";
+        return false;
+    }
+    if (cfg.pool_notify_timeout_sec == 0U) {
+        error_message = "pool.notify_timeout_sec must be greater than 0";
+        return false;
+    }
+    if (cfg.pool_reconnect_initial_sec == 0U || cfg.pool_reconnect_max_sec == 0U) {
+        error_message = "pool reconnect backoff values must be greater than 0";
+        return false;
     }
 
     return true;
@@ -510,13 +594,26 @@ int main(int argc, char** argv) {
     std::signal(SIGTERM, on_signal);
 #endif
 
-    std::string config_path = "config/miner-local-stratum.json";
-    MinerConfig cfg = load_config(config_path);
+    const std::string default_config_path = "config/miner-local-stratum.json";
+    std::string config_path = default_config_path;
+    MinerConfig cfg;
+    const bool default_config_loaded = load_config(config_path, cfg);
     if (!parse_args(argc, argv, config_path, cfg)) {
+        return 1;
+    }
+    if (config_path == default_config_path && !default_config_loaded) {
+        std::cerr << "Failed to read default config file: " << config_path << "\n";
         return 1;
     }
 
     mining::Logger logger(cfg.log_output, mining::LogLevel::INFO);
+    apply_secret_overrides_from_env(cfg, logger);
+
+    std::string config_error;
+    if (!validate_config(cfg, config_error)) {
+        logger.error("config", cfg.node_id, "Invalid configuration", config_error);
+        return 1;
+    }
 
     std::ostringstream startup;
     startup << "worker_id=" << cfg.worker_id

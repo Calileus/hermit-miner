@@ -77,6 +77,15 @@ std::size_t count_occurrences(const std::string& text, const std::string& token)
     return count;
 }
 
+bool replace_once(std::string& text, const std::string& from, const std::string& to) {
+    const std::size_t pos = text.find(from);
+    if (pos == std::string::npos) {
+        return false;
+    }
+    text.replace(pos, from.size(), to);
+    return true;
+}
+
 #ifdef _WIN32
 using SocketType = SOCKET;
 constexpr SocketType kInvalidSocket = INVALID_SOCKET;
@@ -235,4 +244,47 @@ TEST(LocalCert, MinerMultiCycleSessionAgainstFakePool) {
 
     const std::size_t share_accepts = count_occurrences(out, "Share accepted");
     EXPECT_GE(share_accepts, 3U);
+}
+
+TEST(LocalCert, MinerSupportsHostnamePoolHost) {
+    const fs::path fake_pool = find_binary("i_mine_fake_pool");
+    const fs::path miner = find_binary("i_mine");
+    ASSERT_FALSE(fake_pool.empty()) << "i_mine_fake_pool not found";
+    ASSERT_FALSE(miner.empty()) << "i_mine not found";
+
+    const fs::path fake_pool_log = source_root() / "logs" / "fake-pool-hostname.log";
+    const fs::path miner_log = source_root() / "logs" / "miner-hostname.log";
+    const fs::path base_cfg = source_root() / "config" / "miner-local-stratum-test.json";
+    const fs::path hostname_cfg = source_root() / "logs" / "miner-local-stratum-hostname.json";
+    fs::create_directories(miner_log.parent_path());
+
+    std::string cfg_text = read_all(base_cfg);
+    ASSERT_FALSE(cfg_text.empty());
+    ASSERT_TRUE(replace_once(cfg_text, "\"host\": \"127.0.0.1\"", "\"host\": \"localhost\""));
+    ASSERT_TRUE(replace_once(cfg_text, "\"output\": \"logs/miner-offline-stratum-test.log\"", "\"output\": \"logs/miner-hostname-test.log\""));
+    {
+        std::ofstream out_cfg(hostname_cfg);
+        ASSERT_TRUE(out_cfg.is_open());
+        out_cfg << cfg_text;
+    }
+
+    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
+        const std::string cmd = fake_pool.string() + " 3347 > " + fake_pool_log.string() + " 2>&1";
+        return std::system(cmd.c_str());
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(350));
+
+    const std::string miner_cmd = miner.string() + " --config " + hostname_cfg.string() + " > " + miner_log.string() + " 2>&1";
+    const int miner_rc = std::system(miner_cmd.c_str());
+    EXPECT_EQ(miner_rc, 0);
+
+    const auto wait_rc = server_future.wait_for(std::chrono::seconds(10));
+    ASSERT_EQ(wait_rc, std::future_status::ready);
+    EXPECT_EQ(server_future.get(), 0);
+
+    const std::string out = read_all(miner_log);
+    EXPECT_NE(out.find("Connected to pool"), std::string::npos);
+    EXPECT_NE(out.find("localhost:3347"), std::string::npos);
+    EXPECT_NE(out.find("Share accepted"), std::string::npos);
 }
