@@ -13,10 +13,10 @@
 #include <iostream>
 #include <limits>
 #include <mutex>
-#include <regex>
 #include <sstream>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 namespace {
@@ -81,41 +81,242 @@ std::string read_text_file(const std::string& path) {
     return oss.str();
 }
 
-bool parse_json_string(const std::string& json, const std::string& key, std::string& out) {
-    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
-    std::smatch match;
-    if (!std::regex_search(json, match, pattern) || match.size() < 2) {
+struct JsonValue {
+    enum class Type {
+        Null,
+        Bool,
+        Number,
+        String,
+        Object
+    };
+
+    Type type = Type::Null;
+    bool bool_value = false;
+    std::uint64_t number_value = 0;
+    std::string string_value;
+    std::unordered_map<std::string, JsonValue> object_value;
+};
+
+class JsonParser {
+public:
+    explicit JsonParser(const std::string& input) : input_(input) {}
+
+    bool parse(JsonValue& out) {
+        skip_ws();
+        if (!parse_value(out)) {
+            return false;
+        }
+        skip_ws();
+        return pos_ == input_.size();
+    }
+
+private:
+    const std::string& input_;
+    std::size_t pos_ = 0;
+
+    bool parse_value(JsonValue& out) {
+        skip_ws();
+        if (pos_ >= input_.size()) {
+            return false;
+        }
+
+        const char ch = input_[pos_];
+        if (ch == '{') {
+            return parse_object(out);
+        }
+        if (ch == '"') {
+            out.type = JsonValue::Type::String;
+            return parse_string(out.string_value);
+        }
+        if (ch == 't' || ch == 'f') {
+            out.type = JsonValue::Type::Bool;
+            return parse_bool(out.bool_value);
+        }
+        if (ch == 'n') {
+            return parse_null(out);
+        }
+        if (ch >= '0' && ch <= '9') {
+            out.type = JsonValue::Type::Number;
+            return parse_number(out.number_value);
+        }
+
         return false;
     }
 
-    out = match[1].str();
+    bool parse_object(JsonValue& out) {
+        if (pos_ >= input_.size() || input_[pos_] != '{') {
+            return false;
+        }
+        ++pos_;
+
+        out.type = JsonValue::Type::Object;
+        out.object_value.clear();
+
+        skip_ws();
+        if (pos_ < input_.size() && input_[pos_] == '}') {
+            ++pos_;
+            return true;
+        }
+
+        while (pos_ < input_.size()) {
+            skip_ws();
+            std::string key;
+            if (!parse_string(key)) {
+                return false;
+            }
+
+            skip_ws();
+            if (pos_ >= input_.size() || input_[pos_] != ':') {
+                return false;
+            }
+            ++pos_;
+
+            JsonValue value;
+            if (!parse_value(value)) {
+                return false;
+            }
+            out.object_value[key] = value;
+
+            skip_ws();
+            if (pos_ >= input_.size()) {
+                return false;
+            }
+            if (input_[pos_] == '}') {
+                ++pos_;
+                return true;
+            }
+            if (input_[pos_] != ',') {
+                return false;
+            }
+            ++pos_;
+        }
+
+        return false;
+    }
+
+    bool parse_string(std::string& out) {
+        if (pos_ >= input_.size() || input_[pos_] != '"') {
+            return false;
+        }
+        ++pos_;
+
+        std::ostringstream oss;
+        while (pos_ < input_.size()) {
+            const char ch = input_[pos_++];
+            if (ch == '"') {
+                out = oss.str();
+                return true;
+            }
+            if (ch == '\\') {
+                if (pos_ >= input_.size()) {
+                    return false;
+                }
+                const char esc = input_[pos_++];
+                switch (esc) {
+                    case '"': oss << '"'; break;
+                    case '\\': oss << '\\'; break;
+                    case '/': oss << '/'; break;
+                    case 'b': oss << '\b'; break;
+                    case 'f': oss << '\f'; break;
+                    case 'n': oss << '\n'; break;
+                    case 'r': oss << '\r'; break;
+                    case 't': oss << '\t'; break;
+                    default: return false;
+                }
+                continue;
+            }
+            oss << ch;
+        }
+
+        return false;
+    }
+
+    bool parse_number(std::uint64_t& out) {
+        if (pos_ >= input_.size() || input_[pos_] < '0' || input_[pos_] > '9') {
+            return false;
+        }
+        std::size_t start = pos_;
+        while (pos_ < input_.size() && input_[pos_] >= '0' && input_[pos_] <= '9') {
+            ++pos_;
+        }
+        try {
+            out = std::stoull(input_.substr(start, pos_ - start));
+            return true;
+        } catch (...) {
+            return false;
+        }
+    }
+
+    bool parse_bool(bool& out) {
+        if (input_.compare(pos_, 4, "true") == 0) {
+            out = true;
+            pos_ += 4;
+            return true;
+        }
+        if (input_.compare(pos_, 5, "false") == 0) {
+            out = false;
+            pos_ += 5;
+            return true;
+        }
+        return false;
+    }
+
+    bool parse_null(JsonValue& out) {
+        if (input_.compare(pos_, 4, "null") != 0) {
+            return false;
+        }
+        pos_ += 4;
+        out.type = JsonValue::Type::Null;
+        return true;
+    }
+
+    void skip_ws() {
+        while (pos_ < input_.size()) {
+            const char ch = input_[pos_];
+            if (ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t') {
+                ++pos_;
+                continue;
+            }
+            break;
+        }
+    }
+};
+
+const JsonValue* object_field(const JsonValue* obj, const std::string& key) {
+    if (obj == nullptr || obj->type != JsonValue::Type::Object) {
+        return nullptr;
+    }
+    auto it = obj->object_value.find(key);
+    if (it == obj->object_value.end()) {
+        return nullptr;
+    }
+    return &it->second;
+}
+
+bool read_string_field(const JsonValue* obj, const std::string& key, std::string& out) {
+    const JsonValue* field = object_field(obj, key);
+    if (field == nullptr || field->type != JsonValue::Type::String) {
+        return false;
+    }
+    out = field->string_value;
     return true;
 }
 
-bool parse_json_uint(const std::string& json, const std::string& key, std::uint64_t& out) {
-    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*([0-9]+)");
-    std::smatch match;
-    if (!std::regex_search(json, match, pattern) || match.size() < 2) {
+bool read_uint_field(const JsonValue* obj, const std::string& key, std::uint64_t& out) {
+    const JsonValue* field = object_field(obj, key);
+    if (field == nullptr || field->type != JsonValue::Type::Number) {
         return false;
     }
-
-    try {
-        out = std::stoull(match[1].str());
-    } catch (...) {
-        return false;
-    }
-
+    out = field->number_value;
     return true;
 }
 
-bool parse_json_bool(const std::string& json, const std::string& key, bool& out) {
-    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*(true|false)");
-    std::smatch match;
-    if (!std::regex_search(json, match, pattern) || match.size() < 2) {
+bool read_bool_field(const JsonValue* obj, const std::string& key, bool& out) {
+    const JsonValue* field = object_field(obj, key);
+    if (field == nullptr || field->type != JsonValue::Type::Bool) {
         return false;
     }
-
-    out = (match[1].str() == "true");
+    out = field->bool_value;
     return true;
 }
 
@@ -126,61 +327,79 @@ bool load_config(const std::string& path, MinerConfig& cfg) {
         return false;
     }
 
+    JsonValue root;
+    JsonParser parser(json);
+    if (!parser.parse(root) || root.type != JsonValue::Type::Object) {
+        return false;
+    }
+
+    const JsonValue* pool = object_field(&root, "pool");
+    const JsonValue* hashing = object_field(&root, "hashing");
+    const JsonValue* logging = object_field(&root, "logging");
+
     std::string text_value;
     std::uint64_t uint_value = 0;
 
-    if (parse_json_string(json, "node_id", text_value)) {
+    if (read_string_field(&root, "node_id", text_value)) {
         cfg.node_id = text_value;
     }
-    if (parse_json_string(json, "worker_id", text_value)) {
+    if (read_string_field(&root, "worker_id", text_value)) {
         cfg.worker_id = text_value;
     }
-    if (parse_json_string(json, "payout_address", text_value)) {
+    if (read_string_field(&root, "payout_address", text_value)) {
         cfg.payout_address = text_value;
     }
-    if (parse_json_string(json, "username", text_value)) {
+    if (read_string_field(pool, "username", text_value) || read_string_field(&root, "username", text_value)) {
         cfg.pool_username = text_value;
     }
-    if (parse_json_string(json, "host", text_value)) {
+    if (read_string_field(pool, "host", text_value) || read_string_field(&root, "host", text_value)) {
         cfg.pool_host = text_value;
     }
-    if (parse_json_uint(json, "port", uint_value) && uint_value > 0U && uint_value <= 65535U) {
+    if ((read_uint_field(pool, "port", uint_value) || read_uint_field(&root, "port", uint_value))
+        && uint_value > 0U && uint_value <= 65535U) {
         cfg.pool_port = static_cast<std::uint32_t>(uint_value);
     }
-    if (parse_json_string(json, "password", text_value)) {
+    if (read_string_field(pool, "password", text_value) || read_string_field(&root, "password", text_value)) {
         cfg.pool_password = text_value;
     }
-    if (parse_json_string(json, "password_env", text_value)) {
+    if (read_string_field(pool, "password_env", text_value) || read_string_field(&root, "password_env", text_value)) {
         cfg.pool_password_env = text_value;
     }
-    if (parse_json_bool(json, "enabled", cfg.pool_enabled)) {
+    if (read_bool_field(pool, "enabled", cfg.pool_enabled) || read_bool_field(&root, "enabled", cfg.pool_enabled)) {
         // parsed
     }
-    if (parse_json_uint(json, "notify_timeout_sec", uint_value) && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
+    if ((read_uint_field(pool, "notify_timeout_sec", uint_value) || read_uint_field(&root, "notify_timeout_sec", uint_value))
+        && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
         cfg.pool_notify_timeout_sec = static_cast<std::uint32_t>(uint_value);
     }
-    if (parse_json_uint(json, "max_cycles", uint_value) && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
+    if ((read_uint_field(pool, "max_cycles", uint_value) || read_uint_field(&root, "max_cycles", uint_value))
+        && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
         cfg.pool_max_cycles = static_cast<std::uint32_t>(uint_value);
     }
-    if (parse_json_uint(json, "reconnect_initial_sec", uint_value) && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
+    if ((read_uint_field(pool, "reconnect_initial_sec", uint_value) || read_uint_field(&root, "reconnect_initial_sec", uint_value))
+        && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
         cfg.pool_reconnect_initial_sec = static_cast<std::uint32_t>(uint_value);
     }
-    if (parse_json_uint(json, "reconnect_max_sec", uint_value) && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
+    if ((read_uint_field(pool, "reconnect_max_sec", uint_value) || read_uint_field(&root, "reconnect_max_sec", uint_value))
+        && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
         cfg.pool_reconnect_max_sec = static_cast<std::uint32_t>(uint_value);
     }
-    if (parse_json_string(json, "prefix", text_value)) {
+    if (read_string_field(hashing, "prefix", text_value) || read_string_field(&root, "prefix", text_value)) {
         cfg.prefix = text_value;
     }
-    if (parse_json_uint(json, "difficulty_bits", uint_value) && uint_value <= 255U) {
+    if ((read_uint_field(hashing, "difficulty_bits", uint_value) || read_uint_field(&root, "difficulty_bits", uint_value))
+        && uint_value <= 255U) {
         cfg.difficulty_bits = static_cast<std::uint32_t>(uint_value);
     }
-    if (parse_json_uint(json, "threads", uint_value) && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
+    if ((read_uint_field(hashing, "threads", uint_value) || read_uint_field(&root, "threads", uint_value))
+        && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
         cfg.thread_count = static_cast<std::uint32_t>(uint_value);
     }
-    if (parse_json_uint(json, "report_interval_ms", uint_value) && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
+    if ((read_uint_field(hashing, "report_interval_ms", uint_value) || read_uint_field(&root, "report_interval_ms", uint_value))
+        && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
         cfg.report_interval_ms = static_cast<std::uint32_t>(uint_value);
     }
-    if (parse_json_string(json, "output", text_value)) {
+    if (read_string_field(logging, "output", text_value) || read_string_field(&root, "output", text_value)) {
         cfg.log_output = text_value;
     }
 

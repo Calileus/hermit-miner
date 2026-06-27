@@ -52,8 +52,21 @@
 - Logger redacts known sensitive keys and key/value patterns.
 - Local production config files are git-ignored (`config/*.local.json`).
 
+## Configuration Model
+
+- Miner config is parsed by a strict in-process JSON parser in `src/miner.cpp`.
+- Primary schema uses nested objects:
+  - `pool`: network/auth/session settings
+  - `hashing`: mining execution settings
+  - `logging`: output path
+- Backward-compatible flat key parsing is retained for migration safety.
+
+## Cryptography Components
+
+- SHA256 implementation is centralized in `src/sha256.cpp` and `src/sha256.h`.
+- Duplicate SHA256 sources under `src/lib` were removed to avoid divergence.
+
 ## Known Limitations
 
-- Config parsing uses regex extraction and is not a strict JSON parser.
 - Observability is log-based only; no metrics endpoint yet.
 - Miner lifecycle orchestration is concentrated in `src/miner.cpp`.
