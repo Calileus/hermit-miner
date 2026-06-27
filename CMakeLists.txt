@@ -47,6 +47,7 @@ add_custom_target(pre_go_live_check
 add_library(i_mine_lib
     src/lib/job.cpp
     src/lib/logger.cpp
+    src/lib/miner_config.cpp
     src/lib/stratum.cpp
     src/sha256.cpp
 )

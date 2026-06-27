@@ -16,6 +16,7 @@
 - `i_mine_lib` (`src/lib/*.cpp`, `src/sha256.cpp`)
   - `StratumClient`: socket transport and JSON-RPC message flow.
   - `Logger`: JSON-line logging with sensitive field redaction.
+  - `miner_config`: strict config parsing, secret override, and validation.
   - `Job` helpers: difficulty checks and hash formatting.
 
 ## Build and Test System
@@ -54,7 +55,7 @@
 
 ## Configuration Model
 
-- Miner config is parsed by a strict in-process JSON parser in `src/miner.cpp`.
+- Miner config is parsed by a strict in-process JSON parser in `src/lib/miner_config.cpp`.
 - Primary schema uses nested objects:
   - `pool`: network/auth/session settings
   - `hashing`: mining execution settings
