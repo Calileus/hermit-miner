@@ -18,6 +18,12 @@ Not included anymore:
 - distributed scheduling
 - cluster control plane
 
+## Documentation
+
+- Architecture: `docs/ARCHITECTURE.md`
+- Operations runbook: `docs/RUNBOOK.md`
+- Local certification checklist: `LOCAL_CERTIFICATION_CHECKLIST.md`
+
 ## Reality check
 
 CPU mining will not mine real Bitcoin profitably. Mainnet mining requires ASIC hardware.
