@@ -17,6 +17,7 @@
   - `StratumClient`: socket transport and JSON-RPC message flow.
   - `Logger`: JSON-line logging with sensitive field redaction.
   - `miner_config`: strict config parsing, secret override, and validation.
+  - `miner_runtime`: mining engine and Stratum session/reconnect orchestration.
   - `Job` helpers: difficulty checks and hash formatting.
 
 ## Build and Test System
