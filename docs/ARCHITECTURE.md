@@ -14,6 +14,7 @@
 - `i_mine_fake_pool` executable (`src/fake_pool.cpp`)
   - Simulates subscribe/authorize/notify/submit Stratum flow for deterministic offline integration tests.
 - `i_mine_lib` (`src/lib/*.cpp`, `src/sha256.cpp`)
+  - `miner_cli`: command-line parsing and usage output.
   - `StratumClient`: socket transport and JSON-RPC message flow.
   - `Logger`: JSON-line logging with sensitive field redaction.
   - `miner_config`: strict config parsing, secret override, and validation.

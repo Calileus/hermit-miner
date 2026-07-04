@@ -45,6 +45,7 @@ add_custom_target(pre_go_live_check
 
 # Library components
 add_library(i_mine_lib
+    src/lib/miner_cli.cpp
     src/lib/job.cpp
     src/lib/logger.cpp
     src/lib/miner_config.cpp
