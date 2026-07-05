@@ -30,7 +30,11 @@ int main(int argc, char** argv) {
     std::string config_path = default_config_path;
     MinerConfig cfg;
     const bool default_config_loaded = load_config(config_path, cfg);
-    if (!parse_args(argc, argv, config_path, cfg)) {
+    const CliParseResult cli_result = parse_args(argc, argv, config_path, cfg);
+    if (cli_result == CliParseResult::HelpShown) {
+        return 0;
+    }
+    if (cli_result == CliParseResult::Error) {
         return 1;
     }
     if (config_path == default_config_path && !default_config_loaded) {

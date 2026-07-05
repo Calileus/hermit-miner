@@ -4,5 +4,11 @@
 
 #include <string>
 
+enum class CliParseResult {
+	Ok,
+	HelpShown,
+	Error
+};
+
 void print_usage();
-bool parse_args(int argc, char** argv, std::string& config_path, MinerConfig& cfg);
+CliParseResult parse_args(int argc, char** argv, std::string& config_path, MinerConfig& cfg);

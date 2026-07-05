@@ -33,17 +33,17 @@ void print_usage() {
         << "  --report-ms   Status print interval in milliseconds\\n";
 }
 
-bool parse_args(int argc, char** argv, std::string& config_path, MinerConfig& cfg) {
+CliParseResult parse_args(int argc, char** argv, std::string& config_path, MinerConfig& cfg) {
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--help" || arg == "-h") {
             print_usage();
-            return false;
+            return CliParseResult::HelpShown;
         }
 
         if (i + 1 >= argc) {
             std::cerr << "Missing value for: " << arg << "\\n";
-            return false;
+            return CliParseResult::Error;
         }
 
         const std::string value = argv[++i];
@@ -51,30 +51,30 @@ bool parse_args(int argc, char** argv, std::string& config_path, MinerConfig& cf
             config_path = value;
             if (!load_config(config_path, cfg)) {
                 std::cerr << "Failed to read config file: " << config_path << "\\n";
-                return false;
+                return CliParseResult::Error;
             }
         } else if (arg == "--prefix") {
             cfg.prefix = value;
         } else if (arg == "--bits") {
             if (!parse_uint32(value, cfg.difficulty_bits) || cfg.difficulty_bits > 255U) {
                 std::cerr << "Invalid --bits value\\n";
-                return false;
+                return CliParseResult::Error;
             }
         } else if (arg == "--threads") {
             if (!parse_uint32(value, cfg.thread_count) || cfg.thread_count == 0U) {
                 std::cerr << "Invalid --threads value\\n";
-                return false;
+                return CliParseResult::Error;
             }
         } else if (arg == "--report-ms") {
             if (!parse_uint32(value, cfg.report_interval_ms) || cfg.report_interval_ms == 0U) {
                 std::cerr << "Invalid --report-ms value\\n";
-                return false;
+                return CliParseResult::Error;
             }
         } else {
             std::cerr << "Unknown option: " << arg << "\\n";
-            return false;
+            return CliParseResult::Error;
         }
     }
 
-    return true;
+    return CliParseResult::Ok;
 }

@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include "lib/miner_cli.h"
+#include "lib/miner_config.h"
+
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -84,6 +87,42 @@ bool replace_once(std::string& text, const std::string& from, const std::string&
     }
     text.replace(pos, from.size(), to);
     return true;
+}
+
+std::string make_test_config_json() {
+        return R"({
+    "node_id": "UT-1",
+    "worker_id": "ut1",
+    "payout_address": "wallet-ut",
+    "pool": {
+        "enabled": true,
+        "host": "127.0.0.1",
+        "port": 3347,
+        "username": "wallet-ut.ut1",
+        "password": "x",
+        "notify_timeout_sec": 30,
+        "max_cycles": 3,
+        "reconnect_initial_sec": 1,
+        "reconnect_max_sec": 8
+    },
+    "hashing": {
+        "prefix": "hello-bitcoin",
+        "difficulty_bits": 20,
+        "threads": 2,
+        "report_interval_ms": 250
+    },
+    "logging": {
+        "output": "logs/miner-ut.log"
+    }
+})";
+}
+
+fs::path write_temp_config(const std::string& name, const std::string& content) {
+        const fs::path out_path = source_root() / "logs" / name;
+        fs::create_directories(out_path.parent_path());
+        std::ofstream out(out_path);
+        out << content;
+        return out_path;
 }
 
 #ifdef _WIN32
@@ -287,4 +326,161 @@ TEST(LocalCert, MinerSupportsHostnamePoolHost) {
     EXPECT_NE(out.find("Connected to pool"), std::string::npos);
     EXPECT_NE(out.find("localhost:3347"), std::string::npos);
     EXPECT_NE(out.find("Share accepted"), std::string::npos);
+}
+
+TEST(LocalCert, ConfigParserRejectsMalformedJson) {
+    const fs::path cfg_path = write_temp_config("malformed-config.json", "{\"pool\": {\"enabled\": true");
+
+    MinerConfig cfg;
+    EXPECT_FALSE(load_config(cfg_path.string(), cfg));
+}
+
+TEST(LocalCert, CliParsesOverridesFromConfigAndFlags) {
+    const fs::path cfg_path = write_temp_config("cli-override-config.json", make_test_config_json());
+
+    MinerConfig cfg;
+    ASSERT_TRUE(load_config(cfg_path.string(), cfg));
+    std::string config_path = cfg_path.string();
+
+    std::vector<std::string> args_storage = {
+        "i_mine",
+        "--config", cfg_path.string(),
+        "--threads", "4",
+        "--bits", "21",
+        "--prefix", "cli-prefix",
+        "--report-ms", "999"
+    };
+
+    std::vector<char*> argv;
+    argv.reserve(args_storage.size());
+    for (std::string& arg : args_storage) {
+        argv.push_back(arg.data());
+    }
+
+    ASSERT_EQ(parse_args(static_cast<int>(argv.size()), argv.data(), config_path, cfg), CliParseResult::Ok);
+    EXPECT_EQ(config_path, cfg_path.string());
+    EXPECT_EQ(cfg.thread_count, 4U);
+    EXPECT_EQ(cfg.difficulty_bits, 21U);
+    EXPECT_EQ(cfg.prefix, "cli-prefix");
+    EXPECT_EQ(cfg.report_interval_ms, 999U);
+}
+
+TEST(LocalCert, CliRejectsUnknownOption) {
+    MinerConfig cfg;
+    std::string config_path = "config/miner-local-stratum.json";
+
+    std::vector<std::string> args_storage = {
+        "i_mine",
+        "--unknown", "x"
+    };
+
+    std::vector<char*> argv;
+    argv.reserve(args_storage.size());
+    for (std::string& arg : args_storage) {
+        argv.push_back(arg.data());
+    }
+
+    EXPECT_EQ(parse_args(static_cast<int>(argv.size()), argv.data(), config_path, cfg), CliParseResult::Error);
+}
+
+TEST(LocalCert, CliHelpReturnsHelpShown) {
+    MinerConfig cfg;
+    std::string config_path = "config/miner-local-stratum.json";
+
+    std::vector<std::string> args_storage = {
+        "i_mine",
+        "--help"
+    };
+
+    std::vector<char*> argv;
+    argv.reserve(args_storage.size());
+    for (std::string& arg : args_storage) {
+        argv.push_back(arg.data());
+    }
+
+    EXPECT_EQ(parse_args(static_cast<int>(argv.size()), argv.data(), config_path, cfg), CliParseResult::HelpShown);
+}
+
+TEST(LocalCert, CliRejectsMissingOptionValue) {
+    MinerConfig cfg;
+    std::string config_path = "config/miner-local-stratum.json";
+
+    std::vector<std::string> args_storage = {
+        "i_mine",
+        "--threads"
+    };
+
+    std::vector<char*> argv;
+    argv.reserve(args_storage.size());
+    for (std::string& arg : args_storage) {
+        argv.push_back(arg.data());
+    }
+
+    EXPECT_EQ(parse_args(static_cast<int>(argv.size()), argv.data(), config_path, cfg), CliParseResult::Error);
+}
+
+TEST(LocalCert, ConfigValidationRejectsEnabledPoolWithoutHost) {
+    MinerConfig cfg;
+    cfg.pool_enabled = true;
+    cfg.pool_host.clear();
+    cfg.pool_password = "x";
+    cfg.pool_notify_timeout_sec = 30;
+    cfg.pool_reconnect_initial_sec = 1;
+    cfg.pool_reconnect_max_sec = 8;
+
+    std::string error;
+    EXPECT_FALSE(validate_config(cfg, error));
+    EXPECT_NE(error.find("pool.host"), std::string::npos);
+}
+
+TEST(LocalCert, ConfigValidationAcceptsDisabledPoolMinimalConfig) {
+    MinerConfig cfg;
+    cfg.pool_enabled = false;
+    cfg.thread_count = 1;
+    cfg.report_interval_ms = 100;
+
+    std::string error;
+    EXPECT_TRUE(validate_config(cfg, error));
+}
+
+TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
+    const std::string flat_json = R"({
+  "node_id": "LEGACY-1",
+  "worker_id": "legacy01",
+  "payout_address": "legacy-wallet",
+  "enabled": true,
+  "host": "localhost",
+  "port": 3333,
+  "username": "legacy-wallet.legacy01",
+  "password": "legacy-pass",
+  "notify_timeout_sec": 12,
+  "max_cycles": 5,
+  "reconnect_initial_sec": 1,
+  "reconnect_max_sec": 4,
+  "prefix": "legacy-prefix",
+  "difficulty_bits": 19,
+  "threads": 3,
+  "report_interval_ms": 222,
+  "output": "logs/legacy.log"
+})";
+
+    const fs::path cfg_path = write_temp_config("legacy-flat-config.json", flat_json);
+    MinerConfig cfg;
+    ASSERT_TRUE(load_config(cfg_path.string(), cfg));
+
+    EXPECT_EQ(cfg.node_id, "LEGACY-1");
+    EXPECT_EQ(cfg.worker_id, "legacy01");
+    EXPECT_EQ(cfg.pool_host, "localhost");
+    EXPECT_EQ(cfg.pool_port, 3333U);
+    EXPECT_EQ(cfg.pool_username, "legacy-wallet.legacy01");
+    EXPECT_EQ(cfg.pool_password, "legacy-pass");
+    EXPECT_EQ(cfg.pool_notify_timeout_sec, 12U);
+    EXPECT_EQ(cfg.pool_max_cycles, 5U);
+    EXPECT_EQ(cfg.pool_reconnect_initial_sec, 1U);
+    EXPECT_EQ(cfg.pool_reconnect_max_sec, 4U);
+    EXPECT_EQ(cfg.prefix, "legacy-prefix");
+    EXPECT_EQ(cfg.difficulty_bits, 19U);
+    EXPECT_EQ(cfg.thread_count, 3U);
+    EXPECT_EQ(cfg.report_interval_ms, 222U);
+    EXPECT_EQ(cfg.log_output, "logs/legacy.log");
 }
