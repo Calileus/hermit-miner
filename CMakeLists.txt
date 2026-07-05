@@ -43,6 +43,15 @@ add_custom_target(pre_go_live_check
     COMMENT "Run unified pre-go-live validation (all phases with detailed logs)"
 )
 
+add_custom_target(release_readiness_check
+    COMMAND ${CMAKE_COMMAND}
+            -DPROJECT_ROOT=${CMAKE_SOURCE_DIR}
+            -DBUILD_DIR=${CMAKE_BINARY_DIR}
+            -P ${CMAKE_SOURCE_DIR}/scripts/release-readiness.cmake
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Run release readiness gate (automated checks + manual checklist reminder)"
+)
+
 # Library components
 add_library(i_mine_lib
     src/lib/miner_cli.cpp

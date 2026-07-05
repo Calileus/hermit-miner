@@ -22,6 +22,7 @@ Not included anymore:
 
 - Architecture: `docs/ARCHITECTURE.md`
 - Operations runbook: `docs/RUNBOOK.md`
+- Operations matrix: `docs/OPERATIONS.md`
 - Local certification checklist: `LOCAL_CERTIFICATION_CHECKLIST.md`
 
 ## Reality check
@@ -71,6 +72,12 @@ Individual phases can still be run separately if needed:
 cmake --build build --target init_prod_configs --config Release
 cmake --build build --target preflight_prod_configs --config Release
 cmake --build build --target phase2_cert --config Release
+```
+
+Release gate target:
+
+```sh
+cmake --build build --target release_readiness_check --config Release
 ```
 
 Recommended pool identity pattern:
