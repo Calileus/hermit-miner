@@ -2,6 +2,7 @@
 
 #include "lib/miner_cli.h"
 #include "lib/miner_config.h"
+#include "lib/logger.h"
 
 #include <array>
 #include <chrono>
@@ -483,4 +484,25 @@ TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
     EXPECT_EQ(cfg.thread_count, 3U);
     EXPECT_EQ(cfg.report_interval_ms, 222U);
     EXPECT_EQ(cfg.log_output, "logs/legacy.log");
+}
+
+TEST(LocalCert, LoggerRedactsSensitiveValues) {
+    const fs::path log_path = source_root() / "logs" / "redaction-unit.log";
+    fs::create_directories(log_path.parent_path());
+    if (fs::exists(log_path)) {
+        fs::remove(log_path);
+    }
+
+    mining::Logger logger(log_path.string(), mining::LogLevel::INFO);
+    logger.info("security", "UT-SEC", "password=secret123 username=alice token=tkn123", "payout_address=walletXYZ auth_token=abc");
+    logger.info("security", "UT-SEC", "{\"password\":\"jsonSecret\",\"username\":\"bob\"}");
+
+    const std::string out = read_all(log_path);
+    EXPECT_FALSE(out.empty());
+    EXPECT_EQ(out.find("secret123"), std::string::npos);
+    EXPECT_EQ(out.find("alice"), std::string::npos);
+    EXPECT_EQ(out.find("tkn123"), std::string::npos);
+    EXPECT_EQ(out.find("walletXYZ"), std::string::npos);
+    EXPECT_EQ(out.find("jsonSecret"), std::string::npos);
+    EXPECT_NE(out.find("***"), std::string::npos);
 }

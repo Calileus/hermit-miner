@@ -23,6 +23,7 @@ Not included anymore:
 - Architecture: `docs/ARCHITECTURE.md`
 - Operations runbook: `docs/RUNBOOK.md`
 - Operations matrix: `docs/OPERATIONS.md`
+- Security guide: `docs/SECURITY.md`
 - Local certification checklist: `LOCAL_CERTIFICATION_CHECKLIST.md`
 
 ## Reality check
