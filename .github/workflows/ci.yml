@@ -20,6 +20,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Secret Scan (Repository)
+        run: cmake -DPROJECT_ROOT=. -P scripts/ci-secret-scan.cmake
+
       - name: Configure (CMake)
         run: cmake -S . -B build -DBUILD_TESTING=ON
 

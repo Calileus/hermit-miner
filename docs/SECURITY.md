@@ -45,6 +45,7 @@ Operational expectations:
 1. Confirm local production config files are outside version control.
 2. Confirm credentials are supplied via environment variable where possible.
 3. Run:
+  - `cmake -DPROJECT_ROOT=. -P scripts/ci-secret-scan.cmake`
    - `cmake --build build --target pre_go_live_check --config Release`
    - `ctest --test-dir build -C Release --output-on-failure --timeout 30`
 4. Validate final logs for readiness status and absence of secret leakage.
@@ -60,6 +61,5 @@ Operational expectations:
 
 ## Hardening Backlog (Recommended)
 
-- Add static secret scanning in CI for committed config/docs changes.
 - Add host firewall policy templates for miner nodes.
 - Add explicit audit logging for config source (`password` vs `password_env`) without exposing values.
