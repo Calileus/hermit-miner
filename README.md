@@ -21,6 +21,7 @@ Not included anymore:
 ## Documentation
 
 - Architecture: `docs/ARCHITECTURE.md`
+- Contributing guide: `CONTRIBUTING.md`
 - Operations runbook: `docs/RUNBOOK.md`
 - Operations matrix: `docs/OPERATIONS.md`
 - Security guide: `docs/SECURITY.md`
@@ -79,6 +80,12 @@ Release gate target:
 
 ```sh
 cmake --build build --target release_readiness_check --config Release
+```
+
+Local contributor quality gate:
+
+```sh
+cmake --build build --target local_quality_check --config Release
 ```
 
 Recommended pool identity pattern:

@@ -52,6 +52,16 @@ add_custom_target(release_readiness_check
     COMMENT "Run release readiness gate (automated checks + manual checklist reminder)"
 )
 
+add_custom_target(local_quality_check
+    COMMAND ${CMAKE_COMMAND}
+            -DPROJECT_ROOT=${CMAKE_SOURCE_DIR}
+            -DBUILD_DIR=${CMAKE_BINARY_DIR}
+            -DCFG=Release
+            -P ${CMAKE_SOURCE_DIR}/scripts/local-quality-check.cmake
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Run local contributor quality gate (secret scan + build + tests)"
+)
+
 # Library components
 add_library(i_mine_lib
     src/lib/miner_cli.cpp
