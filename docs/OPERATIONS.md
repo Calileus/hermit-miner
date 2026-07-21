@@ -38,6 +38,14 @@ Quick symptom-to-action guide for on-call and release operators.
 - Reconnect storm alert threshold: > 10 reconnect events in 15 minutes.
 - Readiness gate for deployment: status must be `ready` in repeated runs.
 
+## Machine-Readable Health Snapshot
+
+- Configure `logging.health_output` to emit a JSON health snapshot file at session end.
+- Recommended automation usage:
+	- Alert when `status != "ready"` across repeated validation windows.
+	- Alert when `reconnect_events` exceeds threshold within operator-defined interval.
+	- Capture snapshot file in incident evidence bundles.
+
 ## Safe Rollback
 
 1. Stop production miner process gracefully.

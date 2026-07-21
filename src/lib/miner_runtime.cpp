@@ -6,6 +6,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <limits>
 #include <mutex>
@@ -27,6 +29,62 @@ struct SessionStats {
     std::string last_job_id = "none";
     std::chrono::steady_clock::time_point started_at = std::chrono::steady_clock::now();
 };
+
+std::string json_escape(const std::string& input) {
+    std::string out;
+    out.reserve(input.size() + 8);
+    for (char ch : input) {
+        switch (ch) {
+            case '\\': out += "\\\\"; break;
+            case '"': out += "\\\""; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default: out.push_back(ch); break;
+        }
+    }
+    return out;
+}
+
+void write_health_snapshot(
+    const MinerConfig& cfg,
+    const SessionStats& stats,
+    const std::string& readiness_status,
+    std::uint64_t duration_sec,
+    double accepted_per_min,
+    mining::Logger& logger) {
+    if (cfg.health_output.empty()) {
+        return;
+    }
+
+    const std::filesystem::path out_path(cfg.health_output);
+    const std::filesystem::path parent = out_path.parent_path();
+    if (!parent.empty()) {
+        std::error_code ec;
+        std::filesystem::create_directories(parent, ec);
+    }
+
+    std::ofstream out(cfg.health_output, std::ios_base::trunc);
+    if (!out.is_open()) {
+        logger.warn("health", cfg.node_id, "Failed to write health snapshot", cfg.health_output);
+        return;
+    }
+
+    out << "{"
+        << "\"node_id\":\"" << json_escape(cfg.node_id) << "\"," 
+        << "\"status\":\"" << json_escape(readiness_status) << "\"," 
+        << "\"accepted_count\":" << stats.accepted_count << ","
+        << "\"jobs_received\":" << stats.jobs_received << ","
+        << "\"shares_found\":" << stats.shares_found << ","
+        << "\"submits_attempted\":" << stats.submits_attempted << ","
+        << "\"submit_failures\":" << stats.submit_failures << ","
+        << "\"reconnect_events\":" << stats.reconnect_events << ","
+        << "\"session_failures\":" << stats.session_failures << ","
+        << "\"session_duration_sec\":" << duration_sec << ","
+        << "\"accepted_per_min\":" << std::fixed << std::setprecision(2) << accepted_per_min << ","
+        << "\"last_job_id\":\"" << json_escape(stats.last_job_id) << "\""
+        << "}";
+}
 
 bool start_stratum_session(const MinerConfig& cfg, mining::Logger& logger, mining::StratumClient& client) {
     const std::string username = pool_username(cfg);
@@ -268,6 +326,8 @@ int run_stratum_loop(const MinerConfig& cfg, mining::Logger& logger, const std::
               << " session_failures=" << stats.session_failures
               << " reconnect_events=" << stats.reconnect_events;
     logger.info("stratum", cfg.node_id, "Readiness report", readiness.str());
+
+    write_health_snapshot(cfg, stats, readiness_status, duration_sec, accepted_per_min, logger);
 
     logger.info("stratum", cfg.node_id, "Stratum loop finished", "cycles=" + std::to_string(cycles_done));
     return 0;

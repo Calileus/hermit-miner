@@ -22,6 +22,8 @@ Not included anymore:
 
 - Architecture: `docs/ARCHITECTURE.md`
 - Contributing guide: `CONTRIBUTING.md`
+- Enterprise readiness report: `ENTERPRISE_READINESS_REPORT.md`
+- Enterprise roadmap: `docs/ROADMAP.md`
 - Operations runbook: `docs/RUNBOOK.md`
 - Operations matrix: `docs/OPERATIONS.md`
 - Security guide: `docs/SECURITY.md`
@@ -152,6 +154,10 @@ At shutdown, miner logs emit two operational lines:
 
 - `Shutdown summary`: full counters and rates for session health.
 - `Readiness report`: compact go-live signal.
+
+Optional machine-readable output:
+
+- Set `logging.health_output` to write a JSON health snapshot file at end of session.
 
 Key fields in `Shutdown summary`:
 

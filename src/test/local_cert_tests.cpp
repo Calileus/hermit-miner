@@ -294,14 +294,23 @@ TEST(LocalCert, MinerSupportsHostnamePoolHost) {
 
     const fs::path fake_pool_log = source_root() / "logs" / "fake-pool-hostname.log";
     const fs::path miner_log = source_root() / "logs" / "miner-hostname.log";
+    const fs::path health_log = source_root() / "logs" / "miner-hostname-health.json";
     const fs::path base_cfg = source_root() / "config" / "miner-local-stratum-test.json";
     const fs::path hostname_cfg = source_root() / "logs" / "miner-local-stratum-hostname.json";
     fs::create_directories(miner_log.parent_path());
+    if (fs::exists(health_log)) {
+        fs::remove(health_log);
+    }
 
     std::string cfg_text = read_all(base_cfg);
     ASSERT_FALSE(cfg_text.empty());
     ASSERT_TRUE(replace_once(cfg_text, "\"host\": \"127.0.0.1\"", "\"host\": \"localhost\""));
     ASSERT_TRUE(replace_once(cfg_text, "\"output\": \"logs/miner-offline-stratum-test.log\"", "\"output\": \"logs/miner-hostname-test.log\""));
+    const std::string health_abs = health_log.generic_string();
+    ASSERT_TRUE(replace_once(
+        cfg_text,
+        "\"health_output\": \"logs/miner-offline-stratum-test-health.json\"",
+        "\"health_output\": \"" + health_abs + "\""));
     {
         std::ofstream out_cfg(hostname_cfg);
         ASSERT_TRUE(out_cfg.is_open());
@@ -327,6 +336,10 @@ TEST(LocalCert, MinerSupportsHostnamePoolHost) {
     EXPECT_NE(out.find("Connected to pool"), std::string::npos);
     EXPECT_NE(out.find("localhost:3347"), std::string::npos);
     EXPECT_NE(out.find("Share accepted"), std::string::npos);
+
+    const std::string health_out = read_all(health_log);
+    EXPECT_NE(health_out.find("\"status\":\"ready\""), std::string::npos);
+    EXPECT_NE(health_out.find("\"accepted_count\":3"), std::string::npos);
 }
 
 TEST(LocalCert, ConfigParserRejectsMalformedJson) {
@@ -462,7 +475,8 @@ TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
   "difficulty_bits": 19,
   "threads": 3,
   "report_interval_ms": 222,
-  "output": "logs/legacy.log"
+    "output": "logs/legacy.log",
+    "health_output": "logs/legacy-health.json"
 })";
 
     const fs::path cfg_path = write_temp_config("legacy-flat-config.json", flat_json);
@@ -484,6 +498,7 @@ TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
     EXPECT_EQ(cfg.thread_count, 3U);
     EXPECT_EQ(cfg.report_interval_ms, 222U);
     EXPECT_EQ(cfg.log_output, "logs/legacy.log");
+    EXPECT_EQ(cfg.health_output, "logs/legacy-health.json");
 }
 
 TEST(LocalCert, LoggerRedactsSensitiveValues) {

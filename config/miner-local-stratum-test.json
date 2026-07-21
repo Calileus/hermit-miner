@@ -20,6 +20,7 @@
     "report_interval_ms": 250
   },
   "logging": {
-    "output": "logs/miner-offline-stratum-test.log"
+    "output": "logs/miner-offline-stratum-test.log",
+    "health_output": "logs/miner-offline-stratum-test-health.json"
   }
 }

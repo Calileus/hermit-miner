@@ -28,6 +28,7 @@ struct MinerConfig {
     std::uint32_t thread_count = std::max(1U, std::thread::hardware_concurrency());
     std::uint32_t report_interval_ms = 1000U;
     std::string log_output = "logs/miner.log";
+    std::string health_output;
 };
 
 bool load_config(const std::string& path, MinerConfig& cfg);

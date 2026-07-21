@@ -343,6 +343,9 @@ bool load_config(const std::string& path, MinerConfig& cfg) {
     if (read_string_field(logging, "output", text_value) || read_string_field(&root, "output", text_value)) {
         cfg.log_output = text_value;
     }
+    if (read_string_field(logging, "health_output", text_value) || read_string_field(&root, "health_output", text_value)) {
+        cfg.health_output = text_value;
+    }
 
     return true;
 }
