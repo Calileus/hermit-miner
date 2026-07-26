@@ -46,6 +46,7 @@ Use one config per machine. In this repo the active configs are:
 
 - config/miner-local-stratum.json (long-running / infinite mode)
 - config/miner-local-stratum-test.json (deterministic short test mode)
+- config/miner-local-stratum-soak.json (extended stability profile)
 - config/miner-production.template.json (production template, no real secrets)
 
 For local machine-specific production configs (git-ignored), use:
@@ -145,6 +146,12 @@ CLI overrides still apply:
 ```sh
 ctest --test-dir build -C Release --output-on-failure
 ```
+
+Scheduled soak automation:
+
+- Workflow: `.github/workflows/soak.yml`
+- Trigger: nightly schedule + manual dispatch
+- Scope: `LocalCert.MinerSoakProfileAgainstFakePool` with artifact upload
 
 Manual checklist is in LOCAL_CERTIFICATION_CHECKLIST.md.
 

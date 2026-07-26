@@ -34,6 +34,7 @@ Verification:
 
 Target window: Week 2  
 Owner: _TBD_
+Status: Implemented (initial baseline)
 
 Scope:
 - Add scheduled CI job for extended soak profile.
@@ -42,6 +43,11 @@ Scope:
 Deliverables:
 - CI workflow update with scheduled trigger.
 - Troubleshooting notes in `docs/OPERATIONS.md`.
+
+Implemented artifacts:
+- `.github/workflows/soak.yml`
+- `config/miner-local-stratum-soak.json`
+- `LocalCert.MinerSoakProfileAgainstFakePool`
 
 Acceptance criteria:
 - Scheduled soak runs execute without manual intervention.

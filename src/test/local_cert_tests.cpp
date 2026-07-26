@@ -342,6 +342,61 @@ TEST(LocalCert, MinerSupportsHostnamePoolHost) {
     EXPECT_NE(health_out.find("\"accepted_count\":3"), std::string::npos);
 }
 
+TEST(LocalCert, MinerSoakProfileAgainstFakePool) {
+    const fs::path fake_pool = find_binary("i_mine_fake_pool");
+    const fs::path miner = find_binary("i_mine");
+    ASSERT_FALSE(fake_pool.empty()) << "i_mine_fake_pool not found";
+    ASSERT_FALSE(miner.empty()) << "i_mine not found";
+
+    const fs::path fake_pool_log = source_root() / "logs" / "fake-pool-soak.log";
+    const fs::path miner_log = source_root() / "logs" / "miner-soak.log";
+    const fs::path health_log = source_root() / "logs" / "miner-offline-stratum-soak-health.json";
+    const fs::path base_cfg = source_root() / "config" / "miner-local-stratum-soak.json";
+    const fs::path soak_cfg = source_root() / "logs" / "miner-local-stratum-soak-abs.json";
+    fs::create_directories(miner_log.parent_path());
+    if (fs::exists(health_log)) {
+        fs::remove(health_log);
+    }
+
+    std::string cfg_text = read_all(base_cfg);
+    ASSERT_FALSE(cfg_text.empty());
+    const std::string health_abs = health_log.generic_string();
+    ASSERT_TRUE(replace_once(
+        cfg_text,
+        "\"health_output\": \"logs/miner-offline-stratum-soak-health.json\"",
+        "\"health_output\": \"" + health_abs + "\""));
+    {
+        std::ofstream out_cfg(soak_cfg);
+        ASSERT_TRUE(out_cfg.is_open());
+        out_cfg << cfg_text;
+    }
+
+    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
+        const std::string cmd = fake_pool.string() + " 3347 > " + fake_pool_log.string() + " 2>&1";
+        return std::system(cmd.c_str());
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(350));
+
+    const std::string miner_cmd = miner.string() + " --config " + soak_cfg.string() + " > " + miner_log.string() + " 2>&1";
+    const int miner_rc = std::system(miner_cmd.c_str());
+    EXPECT_EQ(miner_rc, 0);
+
+    const auto wait_rc = server_future.wait_for(std::chrono::seconds(20));
+    ASSERT_EQ(wait_rc, std::future_status::ready);
+    EXPECT_EQ(server_future.get(), 0);
+
+    const std::string out = read_all(miner_log);
+    EXPECT_NE(out.find("Stratum session reached cycle limit"), std::string::npos);
+    EXPECT_NE(out.find("accepted_count=25"), std::string::npos);
+    EXPECT_NE(out.find("Readiness report"), std::string::npos);
+    EXPECT_NE(out.find("status=ready"), std::string::npos);
+
+    const std::string health_out = read_all(health_log);
+    EXPECT_NE(health_out.find("\"status\":\"ready\""), std::string::npos);
+    EXPECT_NE(health_out.find("\"accepted_count\":25"), std::string::npos);
+}
+
 TEST(LocalCert, ConfigParserRejectsMalformedJson) {
     const fs::path cfg_path = write_temp_config("malformed-config.json", "{\"pool\": {\"enabled\": true");
 

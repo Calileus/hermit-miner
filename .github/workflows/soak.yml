@@ -1,0 +1,36 @@
+name: Scheduled Soak
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  soak-test:
+    name: Soak Test (windows-latest)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Secret Scan (Repository)
+        run: cmake -DPROJECT_ROOT=. -P scripts/ci-secret-scan.cmake
+
+      - name: Configure (CMake)
+        run: cmake -S . -B build -DBUILD_TESTING=ON
+
+      - name: Build (Release)
+        run: cmake --build build --config Release
+
+      - name: Run soak regression
+        run: ctest --test-dir build -C Release --output-on-failure --timeout 180 -R LocalCert.MinerSoakProfileAgainstFakePool
+
+      - name: Upload soak artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soak-artifacts-windows
+          path: |
+            logs/**
+            build/Testing/**
