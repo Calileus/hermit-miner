@@ -50,6 +50,7 @@ Operational expectations:
    - `ctest --test-dir build -C Release --output-on-failure --timeout 30`
 4. Validate final logs for readiness status and absence of secret leakage.
 5. Keep only least-privilege outbound connectivity required for pool communication.
+6. Confirm log retention and incident escalation policy alignment (`docs/OPERATIONS.md`).
 
 ## Incident Response (Credential Exposure)
 
@@ -58,6 +59,8 @@ Operational expectations:
 3. Purge or secure leaked logs according to internal policy.
 4. Re-run local certification and release-readiness checks.
 5. Resume production only after clean validation.
+
+Use `docs/INCIDENT_TEMPLATE.md` to capture incident evidence and corrective actions.
 
 ## Hardening Backlog (Recommended)
 

@@ -61,6 +61,7 @@ Verification:
 
 Target window: Week 3  
 Owner: _TBD_
+Status: Implemented (baseline policy)
 
 Scope:
 - Add explicit log retention/rotation policy.
@@ -69,6 +70,11 @@ Scope:
 Deliverables:
 - Policy section in `docs/SECURITY.md` or `docs/OPERATIONS.md`.
 - Incident checklist template in docs.
+
+Implemented artifacts:
+- `docs/OPERATIONS.md` (log retention + escalation policy)
+- `docs/INCIDENT_TEMPLATE.md`
+- `docs/SECURITY.md` references
 
 Acceptance criteria:
 - Log retention and escalation policy documented and approved.

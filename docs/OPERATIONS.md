@@ -52,3 +52,30 @@ Quick symptom-to-action guide for on-call and release operators.
 2. Switch to offline test config (`miner-local-stratum-test.json`) for sanity validation.
 3. Revert to last known-good binary/config pair.
 4. Resume production only after readiness returns to `ready`.
+
+## Log Retention Policy (Baseline)
+
+- Local host rolling retention:
+	- Keep at least 7 days of miner logs for active hosts.
+	- Keep at least 30 days for incident-related logs.
+- Protect integrity:
+	- Do not edit historical logs; rotate by file/date only.
+	- Preserve final `Shutdown summary`, `Readiness report`, and health snapshot artifacts for incidents.
+- Storage hygiene:
+	- Purge non-incident logs older than retention threshold.
+	- Ensure local disk alerts exist for log volume growth.
+
+## Incident Escalation Policy (Baseline)
+
+- Severity guidance:
+	- SEV-1: multi-host outage, persistent `not_ready`, or suspected credential compromise.
+	- SEV-2: repeated degraded readiness or reconnect storm on one or more hosts.
+	- SEV-3: isolated host issue with known workaround.
+	- SEV-4: documentation/process issue without active production impact.
+- Escalation path:
+	1. On-call engineer triages and captures evidence bundle.
+	2. Escalate to runtime owner for protocol/runtime faults.
+	3. Escalate to security owner for any credential leakage suspicion.
+	4. Escalate to release owner if rollback/redeploy is required.
+- Reporting:
+	- Use `docs/INCIDENT_TEMPLATE.md` for all SEV-1/SEV-2 incidents.

@@ -26,6 +26,7 @@ Not included anymore:
 - Enterprise roadmap: `docs/ROADMAP.md`
 - Operations runbook: `docs/RUNBOOK.md`
 - Operations matrix: `docs/OPERATIONS.md`
+- Incident template: `docs/INCIDENT_TEMPLATE.md`
 - Security guide: `docs/SECURITY.md`
 - Local certification checklist: `LOCAL_CERTIFICATION_CHECKLIST.md`
 
