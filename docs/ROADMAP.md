@@ -87,6 +87,7 @@ Verification:
 
 Target window: Week 4  
 Owner: _TBD_
+Status: Implemented (baseline ownership controls)
 
 Scope:
 - Define code ownership map and required review paths for runtime/security changes.
@@ -94,6 +95,10 @@ Scope:
 
 Deliverables:
 - Ownership section in `CONTRIBUTING.md` (and CODEOWNERS if desired).
+
+Implemented artifacts:
+- `.github/CODEOWNERS`
+- `CONTRIBUTING.md` ownership and required review policy
 
 Acceptance criteria:
 - Runtime/security paths have explicit reviewers assigned.

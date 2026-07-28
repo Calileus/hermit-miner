@@ -32,6 +32,19 @@ PR must pass CI workflow checks:
 - Configure/Build
 - CTest regression suite
 
+## Ownership and Required Reviews
+
+Repository ownership is declared in `.github/CODEOWNERS`.
+
+Required review paths:
+
+- Runtime/protocol changes (`src/miner.cpp`, `src/lib/miner_runtime.*`, `src/lib/stratum.*`, `src/lib/job.*`) require runtime owner review.
+- Config/secret parsing changes (`src/lib/miner_config.*`, `config/*.json`) require runtime + security owner review.
+- CI/build/script changes (`.github/workflows/*`, `scripts/*.cmake`, `CMakeLists.txt`) require build owner review.
+- Security policy and scanning (`docs/SECURITY.md`, `scripts/ci-secret-scan.cmake`) require security owner review.
+
+PRs affecting multiple ownership areas should request all relevant owner groups.
+
 ## Security Rules
 
 - Never commit real credentials or private keys.
