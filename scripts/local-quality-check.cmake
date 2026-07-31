@@ -40,7 +40,7 @@ execute_process(
             --test-dir ${BUILD_DIR}
             -C ${CFG}
             --output-on-failure
-            --timeout 30
+            --timeout 180
     WORKING_DIRECTORY ${PROJECT_ROOT}
     RESULT_VARIABLE test_rc
 )

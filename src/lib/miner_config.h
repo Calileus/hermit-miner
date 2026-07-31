@@ -21,6 +21,7 @@ struct MinerConfig {
     bool pool_enabled = false;
     std::uint32_t pool_notify_timeout_sec = 30;
     std::uint32_t pool_max_cycles = 0;
+    std::uint32_t pool_max_reconnect_attempts = 0;
     std::uint32_t pool_reconnect_initial_sec = 1;
     std::uint32_t pool_reconnect_max_sec = 30;
     std::string prefix = "hello-bitcoin";

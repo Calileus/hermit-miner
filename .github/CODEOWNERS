@@ -1,0 +1,30 @@
+# NOTE: Replace @org/* placeholders with real GitHub teams/users before enforcement.
+
+# Global fallback owner
+* @org/runtime-owners
+
+# Build and CI
+CMakeLists.txt @org/build-owners
+.github/workflows/* @org/build-owners
+scripts/*.cmake @org/build-owners
+
+# Runtime and protocol paths
+src/miner.cpp @org/runtime-owners
+src/lib/miner_runtime.* @org/runtime-owners
+src/lib/stratum.* @org/runtime-owners
+src/lib/job.* @org/runtime-owners
+src/sha256.* @org/runtime-owners
+
+# Config and CLI
+src/lib/miner_config.* @org/runtime-owners @org/security-owners
+src/lib/miner_cli.* @org/runtime-owners
+config/*.json @org/runtime-owners @org/security-owners
+
+# Security-sensitive areas
+docs/SECURITY.md @org/security-owners
+scripts/ci-secret-scan.cmake @org/security-owners @org/build-owners
+
+# Operational and release docs
+docs/OPERATIONS.md @org/ops-owners
+docs/RUNBOOK.md @org/ops-owners
+ENTERPRISE_READINESS_REPORT.md @org/ops-owners @org/runtime-owners

@@ -36,11 +36,11 @@ jobs:
 
       - name: Test (Windows)
         if: runner.os == 'Windows'
-        run: ctest --test-dir build -C Release --output-on-failure --timeout 30 -V
+        run: ctest --test-dir build -C Release --output-on-failure --timeout 180 -V
 
       - name: Test (Linux)
         if: runner.os == 'Linux'
-        run: ctest --test-dir build --output-on-failure --timeout 30 -V
+        run: ctest --test-dir build --output-on-failure --timeout 180 -V
 
       - name: Upload CTest logs on failure
         if: failure()

@@ -46,8 +46,10 @@
 ## Reliability and Recovery
 
 - Exponential reconnect backoff using config bounds.
+- Optional reconnect-attempt cap (`pool.max_reconnect_attempts`) to fail fast in bounded validation runs.
 - Graceful shutdown on SIGINT/SIGTERM.
 - Session restarts after recoverable Stratum cycle failures.
+- Connection loss during request/notify wait now fails the session immediately (no hidden timeout spin loop).
 
 ## Security Model
 

@@ -264,6 +264,7 @@ int run_stratum_loop(const MinerConfig& cfg, mining::Logger& logger, const std::
     const std::uint32_t backoff_max = std::max(backoff_sec, cfg.pool_reconnect_max_sec);
     SessionStats stats;
     stats.started_at = std::chrono::steady_clock::now();
+    int final_rc = 0;
 
     while (!stop_requested.load(std::memory_order_relaxed)
         && (cfg.pool_max_cycles == 0U || cycles_done < cfg.pool_max_cycles)) {
@@ -276,6 +277,16 @@ int run_stratum_loop(const MinerConfig& cfg, mining::Logger& logger, const std::
         ++stats.reconnect_events;
         ++stats.session_failures;
         stats.last_failure_rc = rc;
+
+        if (cfg.pool_max_reconnect_attempts > 0U && stats.session_failures >= cfg.pool_max_reconnect_attempts) {
+            std::ostringstream exhausted;
+            exhausted << "rc=" << rc
+                      << " max_reconnect_attempts=" << cfg.pool_max_reconnect_attempts
+                      << " cycles_done=" << cycles_done;
+            logger.error("stratum", cfg.node_id, "Reconnect attempt limit reached", exhausted.str());
+            final_rc = rc;
+            break;
+        }
 
         std::ostringstream ctx;
         ctx << "rc=" << rc
@@ -330,5 +341,5 @@ int run_stratum_loop(const MinerConfig& cfg, mining::Logger& logger, const std::
     write_health_snapshot(cfg, stats, readiness_status, duration_sec, accepted_per_min, logger);
 
     logger.info("stratum", cfg.node_id, "Stratum loop finished", "cycles=" + std::to_string(cycles_done));
-    return 0;
+    return final_rc;
 }

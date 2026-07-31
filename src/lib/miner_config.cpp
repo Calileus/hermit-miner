@@ -317,6 +317,10 @@ bool load_config(const std::string& path, MinerConfig& cfg) {
         && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
         cfg.pool_max_cycles = static_cast<std::uint32_t>(uint_value);
     }
+    if ((read_uint_field(pool, "max_reconnect_attempts", uint_value) || read_uint_field(&root, "max_reconnect_attempts", uint_value))
+        && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
+        cfg.pool_max_reconnect_attempts = static_cast<std::uint32_t>(uint_value);
+    }
     if ((read_uint_field(pool, "reconnect_initial_sec", uint_value) || read_uint_field(&root, "reconnect_initial_sec", uint_value))
         && uint_value > 0U && uint_value <= std::numeric_limits<std::uint32_t>::max()) {
         cfg.pool_reconnect_initial_sec = static_cast<std::uint32_t>(uint_value);
@@ -418,8 +422,16 @@ bool validate_config(const MinerConfig& cfg, std::string& error_message) {
         error_message = "pool.username (or payout_address+worker_id) must be set when pool.enabled=true";
         return false;
     }
+    if (pool_username(cfg).find("REPLACE_WITH") != std::string::npos) {
+        error_message = "pool.username contains placeholder value; replace before running with pool.enabled=true";
+        return false;
+    }
     if (cfg.pool_password.empty()) {
         error_message = "pool.password is empty; set pool.password or pool.password_env";
+        return false;
+    }
+    if (cfg.pool_password.find("REPLACE_WITH") != std::string::npos) {
+        error_message = "pool.password contains placeholder value; replace before running with pool.enabled=true";
         return false;
     }
     if (cfg.pool_notify_timeout_sec == 0U) {
@@ -428,6 +440,10 @@ bool validate_config(const MinerConfig& cfg, std::string& error_message) {
     }
     if (cfg.pool_reconnect_initial_sec == 0U || cfg.pool_reconnect_max_sec == 0U) {
         error_message = "pool reconnect backoff values must be greater than 0";
+        return false;
+    }
+    if (cfg.pool_reconnect_max_sec < cfg.pool_reconnect_initial_sec) {
+        error_message = "pool.reconnect_max_sec must be greater than or equal to pool.reconnect_initial_sec";
         return false;
     }
 

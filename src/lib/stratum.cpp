@@ -60,6 +60,8 @@ std::uint32_t parse_u32(const std::string& text, std::uint32_t fallback) {
     }
 }
 
+constexpr std::size_t kMaxJsonLineBytes = 64U * 1024U;
+
 } // namespace
 
 StratumClient::StratumClient(const std::string& host, std::uint16_t port, Logger& logger, const std::string& node_id)
@@ -131,6 +133,12 @@ bool StratumClient::send_line(const std::string& line) {
         return false;
     }
 
+    if (line.size() > kMaxJsonLineBytes) {
+        logger_.error("stratum", node_id_, "Outgoing JSON line exceeds size limit");
+        connected_ = false;
+        return false;
+    }
+
     const std::string out = line + "\n";
     const char* ptr = out.c_str();
     std::size_t left = out.size();
@@ -142,6 +150,7 @@ bool StratumClient::send_line(const std::string& line) {
         const ssize_t sent = send(static_cast<NativeSocket>(socket_fd_), ptr, left, 0);
 #endif
         if (sent <= 0) {
+            connected_ = false;
             return false;
         }
         left -= static_cast<std::size_t>(sent);
@@ -169,6 +178,7 @@ bool StratumClient::receive_line(std::string& out_line, std::uint32_t timeout_se
 
         const int ready = select(static_cast<int>(socket_fd_) + 1, &read_set, nullptr, nullptr, &tv);
         if (ready < 0) {
+            connected_ = false;
             return false;
         }
         if (ready == 0) {
@@ -182,12 +192,18 @@ bool StratumClient::receive_line(std::string& out_line, std::uint32_t timeout_se
         const ssize_t rc = recv(static_cast<NativeSocket>(socket_fd_), &ch, 1, 0);
 #endif
         if (rc <= 0) {
+            connected_ = false;
             return false;
         }
         if (ch == '\n') {
             return true;
         }
         if (ch != '\r') {
+            if (out_line.size() >= kMaxJsonLineBytes) {
+                logger_.error("stratum", node_id_, "Incoming JSON line exceeded size limit");
+                connected_ = false;
+                return false;
+            }
             out_line.push_back(ch);
         }
     }
@@ -208,6 +224,9 @@ bool StratumClient::request_response(const std::string& request, std::string& re
     while (std::chrono::steady_clock::now() < deadline) {
         std::string line;
         if (!receive_line(line, 1)) {
+            if (!connected_) {
+                return false;
+            }
             continue;
         }
 
@@ -357,6 +376,10 @@ bool StratumClient::wait_for_job(StratumJob& out_job, std::uint32_t timeout_sec,
 
         std::string line;
         if (!receive_line(line, 1)) {
+            if (!connected_) {
+                logger_.warn("stratum", node_id_, "Connection lost while waiting for mining.notify");
+                return false;
+            }
             continue;
         }
         if (parse_notify(line, out_job)) {

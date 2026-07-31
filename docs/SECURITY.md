@@ -23,6 +23,10 @@ Before production launch, verify:
   - `pool.password` (fallback only)
 - Placeholder values are removed from all production-local configs.
 
+Runtime safety guard:
+
+- When `pool.enabled=true`, miner rejects placeholder credential fields containing `REPLACE_WITH`.
+
 ## Logging and Redaction
 
 The logger redacts sensitive patterns in both message and context fields.
@@ -61,6 +65,7 @@ Operational expectations:
 5. Resume production only after clean validation.
 
 Use `docs/INCIDENT_TEMPLATE.md` to capture incident evidence and corrective actions.
+Use `docs/DRILL_LOG.md` to record periodic drill execution and preparedness evidence.
 
 ## Hardening Backlog (Recommended)
 

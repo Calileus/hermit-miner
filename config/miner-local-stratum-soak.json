@@ -10,6 +10,7 @@
     "password": "x",
     "notify_timeout_sec": 30,
     "max_cycles": 25,
+    "max_reconnect_attempts": 50,
     "reconnect_initial_sec": 1,
     "reconnect_max_sec": 8
   },

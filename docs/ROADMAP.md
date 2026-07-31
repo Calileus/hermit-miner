@@ -13,6 +13,7 @@ Move launch posture from **READY WITH RISKS** to **READY** using incremental, lo
 
 Target window: Week 1  
 Owner: _TBD_
+Status: Implemented (baseline health signal)
 
 Scope:
 - Define minimal machine-readable health output strategy (for example: periodic JSON summary line or lightweight metrics file output).
@@ -21,6 +22,12 @@ Scope:
 Deliverables:
 - Implementation PR for health output.
 - Updated `docs/RUNBOOK.md` and `docs/OPERATIONS.md` with alert thresholds.
+
+Implemented artifacts:
+- `logging.health_output` support in runtime/config
+- Health snapshot JSON emission at session end
+- Integration coverage via local certification tests
+- Operational guidance in `docs/OPERATIONS.md`
 
 Acceptance criteria:
 - At least one deterministic health signal can be consumed by automation.
@@ -120,7 +127,8 @@ Project can be marked **READY** when all are true:
 
 Use this section to track active progress:
 
-- Current milestone: _TBD_
-- Blockers: _TBD_
-- Last gate run result: _TBD_
+- Current milestone: M2 operational evidence collection (scheduled soak history)
+- Blockers: none known in codebase; pending run-history accumulation
+- Last gate run result: `local_quality_check` passed (19/19 tests)
+- Drill evidence tracking: use `docs/DRILL_LOG.md` and reference latest drill in release checklist
 - Next checkpoint date: _TBD_

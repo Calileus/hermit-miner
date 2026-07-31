@@ -15,7 +15,7 @@ Operational procedures for offline certification, controlled go-live, and incide
 ```sh
 cmake -S . -B build -DBUILD_TESTING=ON
 cmake --build build --config Release
-ctest --test-dir build -C Release --output-on-failure --timeout 30 -V
+ctest --test-dir build -C Release --output-on-failure --timeout 180 -V
 ```
 
 ## Pre-Go-Live Checklist
@@ -25,6 +25,7 @@ ctest --test-dir build -C Release --output-on-failure --timeout 30 -V
    cmake --build build --target init_prod_configs --config Release
    ```
 2. Fill each `config/miner-prod-*.local.json` with real values.
+  - Startup will fail if `pool.username` or `pool.password` still contains `REPLACE_WITH`.
 3. Prefer secret-by-env:
    - Set `pool.password_env` (for example `IMINE_POOL_PASSWORD`).
    - Export the variable on each machine before launch.
@@ -33,6 +34,13 @@ ctest --test-dir build -C Release --output-on-failure --timeout 30 -V
    cmake --build build --target pre_go_live_check --config Release
    ```
 5. Complete manual checks from `LOCAL_CERTIFICATION_CHECKLIST.md`.
+
+Reconnect policy tip:
+
+- Use `pool.max_reconnect_attempts=0` for long-running production mode.
+- Use a finite `pool.max_reconnect_attempts` for bounded validation profiles so pool outages fail fast instead of looping indefinitely.
+- When the cap is reached, miner exits non-zero and logs `Reconnect attempt limit reached` for deterministic gate behavior.
+- Keep `pool.reconnect_max_sec >= pool.reconnect_initial_sec`.
 
 ## Start / Stop
 

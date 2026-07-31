@@ -62,6 +62,15 @@ add_custom_target(local_quality_check
     COMMENT "Run local contributor quality gate (secret scan + build + tests)"
 )
 
+add_custom_target(release_summary
+    COMMAND ${CMAKE_COMMAND}
+            -DPROJECT_ROOT=${CMAKE_SOURCE_DIR}
+            -DBUILD_DIR=${CMAKE_BINARY_DIR}
+            -P ${CMAKE_SOURCE_DIR}/scripts/release-summary.cmake
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Print concise release go/no-go artifact summary"
+)
+
 # Library components
 add_library(i_mine_lib
     src/lib/miner_cli.cpp

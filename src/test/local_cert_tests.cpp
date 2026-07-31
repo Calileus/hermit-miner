@@ -35,6 +35,24 @@ std::string quote(const fs::path& p) {
     return std::string("\"") + p.string() + "\"";
 }
 
+std::string redirected_command(const fs::path& exe, const std::string& args, const fs::path& log_path) {
+#ifdef _WIN32
+    std::string cmd = "cmd /C \"\"" + exe.string() + "\"";
+    if (!args.empty()) {
+        cmd += " " + args;
+    }
+    cmd += " > \"" + log_path.string() + "\" 2>&1\"";
+    return cmd;
+#else
+    std::string cmd = quote(exe);
+    if (!args.empty()) {
+        cmd += " " + args;
+    }
+    cmd += " > " + quote(log_path) + " 2>&1";
+    return cmd;
+#endif
+}
+
 fs::path source_root() {
     return fs::path(IMINE_SOURCE_DIR);
 }
@@ -206,7 +224,7 @@ TEST(LocalCert, FakePoolRawHandshakeFlow) {
     fs::create_directories(fake_pool_log.parent_path());
 
     auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
-        const std::string cmd = fake_pool.string() + " 3347 > " + fake_pool_log.string() + " 2>&1";
+        const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
         return std::system(cmd.c_str());
     });
 
@@ -259,14 +277,14 @@ TEST(LocalCert, MinerMultiCycleSessionAgainstFakePool) {
     fs::create_directories(miner_log.parent_path());
 
     auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
-        const std::string cmd = fake_pool.string() + " 3347 > " + fake_pool_log.string() + " 2>&1";
+        const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
         return std::system(cmd.c_str());
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(350));
 
     const fs::path test_cfg = source_root() / "config" / "miner-local-stratum-test.json";
-    const std::string miner_cmd = miner.string() + " --config " + test_cfg.string() + " > " + miner_log.string() + " 2>&1";
+    const std::string miner_cmd = redirected_command(miner, "--config " + quote(test_cfg), miner_log);
     const int miner_rc = std::system(miner_cmd.c_str());
     EXPECT_EQ(miner_rc, 0);
 
@@ -318,13 +336,13 @@ TEST(LocalCert, MinerSupportsHostnamePoolHost) {
     }
 
     auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
-        const std::string cmd = fake_pool.string() + " 3347 > " + fake_pool_log.string() + " 2>&1";
+        const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
         return std::system(cmd.c_str());
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(350));
 
-    const std::string miner_cmd = miner.string() + " --config " + hostname_cfg.string() + " > " + miner_log.string() + " 2>&1";
+    const std::string miner_cmd = redirected_command(miner, "--config " + quote(hostname_cfg), miner_log);
     const int miner_rc = std::system(miner_cmd.c_str());
     EXPECT_EQ(miner_rc, 0);
 
@@ -372,13 +390,13 @@ TEST(LocalCert, MinerSoakProfileAgainstFakePool) {
     }
 
     auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
-        const std::string cmd = fake_pool.string() + " 3347 > " + fake_pool_log.string() + " 2>&1";
+        const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
         return std::system(cmd.c_str());
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(350));
 
-    const std::string miner_cmd = miner.string() + " --config " + soak_cfg.string() + " > " + miner_log.string() + " 2>&1";
+    const std::string miner_cmd = redirected_command(miner, "--config " + quote(soak_cfg), miner_log);
     const int miner_rc = std::system(miner_cmd.c_str());
     EXPECT_EQ(miner_rc, 0);
 
@@ -512,6 +530,70 @@ TEST(LocalCert, ConfigValidationAcceptsDisabledPoolMinimalConfig) {
     EXPECT_TRUE(validate_config(cfg, error));
 }
 
+TEST(LocalCert, ConfigValidationRejectsReconnectMaxLessThanInitial) {
+    MinerConfig cfg;
+    cfg.pool_enabled = true;
+    cfg.pool_host = "localhost";
+    cfg.pool_port = 3333;
+    cfg.pool_username = "wallet.worker";
+    cfg.pool_password = "x";
+    cfg.pool_notify_timeout_sec = 30;
+    cfg.pool_reconnect_initial_sec = 8;
+    cfg.pool_reconnect_max_sec = 2;
+
+    std::string error;
+    EXPECT_FALSE(validate_config(cfg, error));
+    EXPECT_NE(error.find("reconnect_max_sec"), std::string::npos);
+}
+
+TEST(LocalCert, ConfigValidationAcceptsZeroReconnectAttemptCapAsUnlimited) {
+    MinerConfig cfg;
+    cfg.pool_enabled = true;
+    cfg.pool_host = "localhost";
+    cfg.pool_port = 3333;
+    cfg.pool_username = "wallet.worker";
+    cfg.pool_password = "x";
+    cfg.pool_notify_timeout_sec = 30;
+    cfg.pool_reconnect_initial_sec = 1;
+    cfg.pool_reconnect_max_sec = 8;
+    cfg.pool_max_reconnect_attempts = 0;
+
+    std::string error;
+    EXPECT_TRUE(validate_config(cfg, error));
+}
+
+TEST(LocalCert, ConfigValidationRejectsPlaceholderUsername) {
+    MinerConfig cfg;
+    cfg.pool_enabled = true;
+    cfg.pool_host = "localhost";
+    cfg.pool_port = 3333;
+    cfg.pool_username = "REPLACE_WITH_REAL_WALLET.worker";
+    cfg.pool_password = "x";
+    cfg.pool_notify_timeout_sec = 30;
+    cfg.pool_reconnect_initial_sec = 1;
+    cfg.pool_reconnect_max_sec = 8;
+
+    std::string error;
+    EXPECT_FALSE(validate_config(cfg, error));
+    EXPECT_NE(error.find("placeholder"), std::string::npos);
+}
+
+TEST(LocalCert, ConfigValidationRejectsPlaceholderPassword) {
+    MinerConfig cfg;
+    cfg.pool_enabled = true;
+    cfg.pool_host = "localhost";
+    cfg.pool_port = 3333;
+    cfg.pool_username = "wallet.worker";
+    cfg.pool_password = "REPLACE_WITH_POOL_PASSWORD";
+    cfg.pool_notify_timeout_sec = 30;
+    cfg.pool_reconnect_initial_sec = 1;
+    cfg.pool_reconnect_max_sec = 8;
+
+    std::string error;
+    EXPECT_FALSE(validate_config(cfg, error));
+    EXPECT_NE(error.find("placeholder"), std::string::npos);
+}
+
 TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
     const std::string flat_json = R"({
   "node_id": "LEGACY-1",
@@ -524,6 +606,7 @@ TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
   "password": "legacy-pass",
   "notify_timeout_sec": 12,
   "max_cycles": 5,
+    "max_reconnect_attempts": 9,
   "reconnect_initial_sec": 1,
   "reconnect_max_sec": 4,
   "prefix": "legacy-prefix",
@@ -546,6 +629,7 @@ TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
     EXPECT_EQ(cfg.pool_password, "legacy-pass");
     EXPECT_EQ(cfg.pool_notify_timeout_sec, 12U);
     EXPECT_EQ(cfg.pool_max_cycles, 5U);
+    EXPECT_EQ(cfg.pool_max_reconnect_attempts, 9U);
     EXPECT_EQ(cfg.pool_reconnect_initial_sec, 1U);
     EXPECT_EQ(cfg.pool_reconnect_max_sec, 4U);
     EXPECT_EQ(cfg.prefix, "legacy-prefix");
@@ -575,4 +659,54 @@ TEST(LocalCert, LoggerRedactsSensitiveValues) {
     EXPECT_EQ(out.find("walletXYZ"), std::string::npos);
     EXPECT_EQ(out.find("jsonSecret"), std::string::npos);
     EXPECT_NE(out.find("***"), std::string::npos);
+}
+
+TEST(LocalCert, MinerFailsFastWhenReconnectAttemptLimitReached) {
+        const fs::path miner = find_binary("i_mine");
+        ASSERT_FALSE(miner.empty()) << "i_mine not found";
+
+        const fs::path cfg_path = source_root() / "logs" / "reconnect-cap-config.json";
+        const fs::path miner_log = source_root() / "logs" / "miner-reconnect-cap.log";
+        fs::create_directories(miner_log.parent_path());
+
+        const std::string cfg = R"({
+    "node_id": "UT-RC",
+    "worker_id": "utrc",
+    "payout_address": "wallet-ut",
+    "pool": {
+        "enabled": true,
+        "host": "127.0.0.1",
+        "port": 65432,
+        "username": "wallet-ut.utrc",
+        "password": "x",
+        "notify_timeout_sec": 3,
+        "max_cycles": 0,
+        "max_reconnect_attempts": 2,
+        "reconnect_initial_sec": 1,
+        "reconnect_max_sec": 1
+    },
+    "hashing": {
+        "prefix": "hello-bitcoin",
+        "difficulty_bits": 20,
+        "threads": 1,
+        "report_interval_ms": 200
+    },
+    "logging": {
+        "output": "logs/miner-reconnect-cap-runtime.log"
+    }
+})";
+
+        {
+                std::ofstream out_cfg(cfg_path);
+                ASSERT_TRUE(out_cfg.is_open());
+                out_cfg << cfg;
+        }
+
+        const std::string miner_cmd = redirected_command(miner, "--config " + quote(cfg_path), miner_log);
+        const int miner_rc = std::system(miner_cmd.c_str());
+        EXPECT_NE(miner_rc, 0);
+
+        const std::string out = read_all(miner_log);
+        EXPECT_NE(out.find("Reconnect attempt limit reached"), std::string::npos);
+        EXPECT_NE(out.find("Stratum loop finished"), std::string::npos);
 }

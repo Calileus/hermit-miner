@@ -27,6 +27,8 @@ Not included anymore:
 - Operations runbook: `docs/RUNBOOK.md`
 - Operations matrix: `docs/OPERATIONS.md`
 - Incident template: `docs/INCIDENT_TEMPLATE.md`
+- Release checklist: `docs/RELEASE_CHECKLIST.md`
+- Drill log: `docs/DRILL_LOG.md`
 - Security guide: `docs/SECURITY.md`
 - Local certification checklist: `LOCAL_CERTIFICATION_CHECKLIST.md`
 
@@ -86,6 +88,12 @@ Release gate target:
 cmake --build build --target release_readiness_check --config Release
 ```
 
+Release summary snapshot:
+
+```sh
+cmake --build build --target release_summary --config Release
+```
+
 Local contributor quality gate:
 
 ```sh
@@ -123,6 +131,8 @@ $env:IMINE_POOL_PASSWORD = "your-real-password"
 ### Long-running mode
 
 - pool.max_cycles = 0 means infinite session mode.
+- pool.max_reconnect_attempts = 0 means unlimited reconnect attempts (default).
+- For bounded certification runs, set pool.max_reconnect_attempts to a finite value so outage scenarios fail fast.
 - Press Ctrl+C for graceful shutdown.
 - Reconnect uses exponential backoff via pool.reconnect_initial_sec and pool.reconnect_max_sec.
 
@@ -145,7 +155,7 @@ CLI overrides still apply:
 ## Automated local certification
 
 ```sh
-ctest --test-dir build -C Release --output-on-failure
+ctest --test-dir build -C Release --output-on-failure --timeout 180
 ```
 
 Scheduled soak automation:
