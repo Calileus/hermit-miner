@@ -14,7 +14,7 @@ Pass policy:
 Required:
 - Windows or Linux host with CMake and C++ toolchain.
 - No internet required.
-- Project root opened at D:/mystuff/i_mine (or equivalent).
+- Project root opened at D:/mystuff/repos/i_mine (or equivalent).
 
 Build command:
 - cmake -S . -B build
@@ -101,6 +101,10 @@ Expected pass values:
 
 ### LC-006 Reconnect Backoff Behavior (Mandatory)
 
+Automation status:
+- Automated by `LocalCert.MinerRecoversAfterPoolComesOnline` in the CTest suite.
+- Manual rerun remains recommended for environment-specific rollout rehearsal.
+
 Setup:
 - Start miner first with fake pool down.
 
@@ -144,6 +148,10 @@ Note:
 - Throughput is hardware-dependent; this is a sanity floor, not a performance target.
 
 ### LC-009 Secret Redaction Sanity (Mandatory)
+
+Automation status:
+- Automated by `LocalCert.MinerRuntimeLogDoesNotLeakConfiguredPasswordMarker` in the CTest suite.
+- Manual rerun remains recommended when changing logging/redaction behavior.
 
 Action:
 - Set pool.password in config to a known marker string.

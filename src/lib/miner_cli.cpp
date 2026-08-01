@@ -21,6 +21,14 @@ bool parse_uint32(const std::string& text, std::uint32_t& out) {
     }
 }
 
+bool option_requires_value(const std::string& arg) {
+    return arg == "--config"
+        || arg == "--prefix"
+        || arg == "--bits"
+        || arg == "--threads"
+        || arg == "--report-ms";
+}
+
 } // namespace
 
 void print_usage() {
@@ -41,8 +49,15 @@ CliParseResult parse_args(int argc, char** argv, std::string& config_path, Miner
             return CliParseResult::HelpShown;
         }
 
+        if (!option_requires_value(arg)) {
+            std::cerr << "Unknown option: " << arg << "\n";
+            std::cerr << "Use --help to view supported options.\n";
+            return CliParseResult::Error;
+        }
+
         if (i + 1 >= argc) {
             std::cerr << "Missing value for: " << arg << "\n";
+            std::cerr << "Use --help to view expected option values.\n";
             return CliParseResult::Error;
         }
 
@@ -51,28 +66,26 @@ CliParseResult parse_args(int argc, char** argv, std::string& config_path, Miner
             config_path = value;
             if (!load_config(config_path, cfg)) {
                 std::cerr << "Failed to read config file: " << config_path << "\n";
+                std::cerr << "Use --config with a valid JSON file path.\n";
                 return CliParseResult::Error;
             }
         } else if (arg == "--prefix") {
             cfg.prefix = value;
         } else if (arg == "--bits") {
             if (!parse_uint32(value, cfg.difficulty_bits) || cfg.difficulty_bits > 255U) {
-                std::cerr << "Invalid --bits value\n";
+                std::cerr << "Invalid --bits value: " << value << " (expected integer range 0..255)\n";
                 return CliParseResult::Error;
             }
         } else if (arg == "--threads") {
             if (!parse_uint32(value, cfg.thread_count) || cfg.thread_count == 0U) {
-                std::cerr << "Invalid --threads value\n";
+                std::cerr << "Invalid --threads value: " << value << " (expected integer >= 1)\n";
                 return CliParseResult::Error;
             }
         } else if (arg == "--report-ms") {
             if (!parse_uint32(value, cfg.report_interval_ms) || cfg.report_interval_ms == 0U) {
-                std::cerr << "Invalid --report-ms value\n";
+                std::cerr << "Invalid --report-ms value: " << value << " (expected integer >= 1)\n";
                 return CliParseResult::Error;
             }
-        } else {
-            std::cerr << "Unknown option: " << arg << "\n";
-            return CliParseResult::Error;
         }
     }
 

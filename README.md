@@ -31,6 +31,9 @@ Not included anymore:
 - Drill log: `docs/DRILL_LOG.md`
 - Security guide: `docs/SECURITY.md`
 - Local certification checklist: `LOCAL_CERTIFICATION_CHECKLIST.md`
+- Documentation consistency matrix: `docs/DOCUMENTATION_CONSISTENCY_MATRIX.md`
+- Terminology source of truth: `docs/TERMINOLOGY.md`
+- Checkpoint release report: `CHECKPOINT_RELEASE_REPORT.md`
 
 ## Reality check
 
@@ -41,6 +44,44 @@ CPU mining will not mine real Bitcoin profitably. Mainnet mining requires ASIC h
 ```sh
 cmake -S . -B build -DBUILD_TESTING=ON
 cmake --build build --config Release
+```
+
+## Quick start (first run)
+
+Use this sequence for a new local checkout.
+
+1) Build
+
+```sh
+cmake -S . -B build -DBUILD_TESTING=ON
+cmake --build build --config Release
+```
+
+2) Start local fake pool (Terminal A)
+
+```sh
+./build/Release/i_mine_fake_pool 3333
+```
+
+3) Start miner against local pool (Terminal B)
+
+```sh
+./build/Release/i_mine --config config/miner-local-stratum-test.json
+```
+
+4) Confirm expected signals in miner output
+
+- `Connected to pool`
+- `Subscribe OK`
+- `Authorize OK`
+- `Share accepted`
+- `Shutdown summary`
+- `Readiness report`
+
+5) Run automated local certification
+
+```sh
+ctest --test-dir build -C Release --output-on-failure --timeout 180
 ```
 
 ## Configs
@@ -159,6 +200,28 @@ CLI overrides still apply:
 ```sh
 ctest --test-dir build -C Release --output-on-failure --timeout 180
 ```
+
+## Troubleshooting decision tree
+
+- Miner exits before connecting?
+	- Run with `--config` and check startup error text.
+	- If error mentions placeholders, replace `REPLACE_WITH...` values in config.
+	- If error mentions `pool.require_tls=true`, set `pool.require_tls=false` and use secure tunnel/proxy for non-local pools.
+- `Pool host resolution failed` or `connect() failed`?
+	- Verify `pool.host`, `pool.port`, and DNS/firewall reachability.
+	- Retry with local fake pool (`127.0.0.1:3333`) to isolate network vs runtime.
+- `Authorize rejected`?
+	- Verify `pool.username` format and secret source (`pool.password` or `pool.password_env`).
+	- If using `pool.password_env`, ensure the environment variable exists in the current shell.
+- Repeated `Stratum cycle failed; reconnecting`?
+	- Check pool/network stability first.
+	- For bounded validation, set finite `pool.max_reconnect_attempts` to fail fast.
+- `Readiness report status=not_ready`?
+	- Confirm `mining.notify` jobs are being received.
+	- Confirm submit path by running fake-pool validation and comparing logs.
+- `Readiness report status=degraded`?
+	- Inspect `submit_failures` and `session_failures` in `Shutdown summary`.
+	- If recurring, capture logs and escalate using `docs/INCIDENT_TEMPLATE.md`.
 
 Scheduled soak automation:
 

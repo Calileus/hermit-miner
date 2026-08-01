@@ -53,7 +53,7 @@ Operational expectations:
 3. Run:
   - `cmake -DPROJECT_ROOT=. -P scripts/ci-secret-scan.cmake`
    - `cmake --build build --target pre_go_live_check --config Release`
-   - `ctest --test-dir build -C Release --output-on-failure --timeout 30`
+  - `ctest --test-dir build -C Release --output-on-failure --timeout 180`
 4. Validate final logs for readiness status and absence of secret leakage.
 5. Keep only least-privilege outbound connectivity required for pool communication.
 6. Confirm log retention and incident escalation policy alignment (`docs/OPERATIONS.md`).

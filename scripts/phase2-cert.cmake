@@ -49,10 +49,11 @@ run_step("LC-001" COMMAND ${CMAKE_COMMAND} --build "${BUILD_DIR}" --config ${CFG
 # LC-003/LC-004 baseline via automated tests
 run_step("LC-003_LC-004" COMMAND ${CMAKE_CTEST_COMMAND} --test-dir "${BUILD_DIR}" -C ${CFG} --output-on-failure)
 
-# Phase-2 mandatory manual checks not fully automated in CMake script.
-# We intentionally mark these as PENDING so go/no-go remains strict.
-report_result("LC-006" "PENDING" "manual reconnect backoff + recovery still required")
-report_result("LC-009" "PENDING" "manual secret redaction sanity still required")
+# LC-006 reconnect backoff + recovery
+run_step("LC-006" COMMAND ${CMAKE_CTEST_COMMAND} --test-dir "${BUILD_DIR}" -C ${CFG} --output-on-failure -R "LocalCert\.MinerRecoversAfterPoolComesOnline")
+
+# LC-009 runtime log secret redaction sanity
+run_step("LC-009" COMMAND ${CMAKE_CTEST_COMMAND} --test-dir "${BUILD_DIR}" -C ${CFG} --output-on-failure -R "LocalCert\.MinerRuntimeLogDoesNotLeakConfiguredPasswordMarker")
 
 if(FAILED)
     report_result("MANDATORY_ALL" "FAIL" "one or more automated checks failed")
@@ -60,5 +61,5 @@ if(FAILED)
     message(FATAL_ERROR "Phase 2 certification failed")
 endif()
 
-report_result("MANDATORY_ALL" "PENDING" "complete LC-006 and LC-009 manually")
+report_result("MANDATORY_ALL" "PASS" "all mandatory checks satisfied")
 message(STATUS "PHASE2_RESULT_END")

@@ -470,6 +470,24 @@ TEST(LocalCert, CliRejectsUnknownOption) {
     EXPECT_EQ(parse_args(static_cast<int>(argv.size()), argv.data(), config_path, cfg), CliParseResult::Error);
 }
 
+TEST(LocalCert, CliRejectsUnknownOptionWithoutValue) {
+    MinerConfig cfg;
+    std::string config_path = "config/miner-local-stratum.json";
+
+    std::vector<std::string> args_storage = {
+        "i_mine",
+        "--no-such-option"
+    };
+
+    std::vector<char*> argv;
+    argv.reserve(args_storage.size());
+    for (std::string& arg : args_storage) {
+        argv.push_back(arg.data());
+    }
+
+    EXPECT_EQ(parse_args(static_cast<int>(argv.size()), argv.data(), config_path, cfg), CliParseResult::Error);
+}
+
 TEST(LocalCert, CliHelpReturnsHelpShown) {
     MinerConfig cfg;
     std::string config_path = "config/miner-local-stratum.json";
@@ -770,4 +788,141 @@ TEST(LocalCert, MinerFailsFastWhenReconnectAttemptLimitReached) {
     const std::string out = read_all(miner_log);
     EXPECT_NE(out.find("Reconnect attempt limit reached"), std::string::npos);
     EXPECT_NE(out.find("Stratum loop finished"), std::string::npos);
+}
+
+TEST(LocalCert, MinerRecoversAfterPoolComesOnline) {
+    const fs::path fake_pool = find_binary("i_mine_fake_pool");
+    const fs::path miner = find_binary("i_mine");
+    ASSERT_FALSE(fake_pool.empty()) << "i_mine_fake_pool not found";
+    ASSERT_FALSE(miner.empty()) << "i_mine not found";
+
+    const fs::path cfg_path = source_root() / "logs" / "reconnect-recovery-config.json";
+    const fs::path miner_log = source_root() / "logs" / "miner-reconnect-recovery.log";
+    const fs::path fake_pool_log = source_root() / "logs" / "fake-pool-reconnect-recovery.log";
+    fs::create_directories(miner_log.parent_path());
+
+    const std::string cfg = R"({
+    "node_id": "UT-RR",
+    "worker_id": "utrr",
+    "payout_address": "wallet-ut",
+    "pool": {
+        "enabled": true,
+        "host": "127.0.0.1",
+        "port": 3347,
+        "username": "wallet-ut.utrr",
+        "password": "x",
+        "notify_timeout_sec": 6,
+        "max_cycles": 2,
+        "max_reconnect_attempts": 10,
+        "reconnect_initial_sec": 1,
+        "reconnect_max_sec": 2
+    },
+    "hashing": {
+        "prefix": "hello-bitcoin",
+        "difficulty_bits": 20,
+        "threads": 1,
+        "report_interval_ms": 200
+    },
+    "logging": {
+        "output": "logs/miner-reconnect-recovery-runtime.log"
+    }
+})";
+
+    {
+        std::ofstream out_cfg(cfg_path);
+        ASSERT_TRUE(out_cfg.is_open());
+        out_cfg << cfg;
+    }
+
+    auto miner_future = std::async(std::launch::async, [miner, cfg_path, miner_log]() {
+        const std::string miner_cmd = redirected_command(miner, "--config " + quote(cfg_path), miner_log);
+        return std::system(miner_cmd.c_str());
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(3200));
+
+    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
+        const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
+        return std::system(cmd.c_str());
+    });
+
+    const auto miner_wait_rc = miner_future.wait_for(std::chrono::seconds(20));
+    ASSERT_EQ(miner_wait_rc, std::future_status::ready);
+    EXPECT_EQ(miner_future.get(), 0);
+
+    const auto server_wait_rc = server_future.wait_for(std::chrono::seconds(10));
+    ASSERT_EQ(server_wait_rc, std::future_status::ready);
+    EXPECT_EQ(server_future.get(), 0);
+
+    const std::string out = read_all(miner_log);
+    EXPECT_NE(out.find("Stratum cycle failed; reconnecting"), std::string::npos);
+    EXPECT_NE(out.find("reconnect_events=1"), std::string::npos);
+    EXPECT_NE(out.find("Connected to pool"), std::string::npos);
+    EXPECT_NE(out.find("Subscribe OK"), std::string::npos);
+    EXPECT_NE(out.find("Authorize OK"), std::string::npos);
+    EXPECT_NE(out.find("Share accepted"), std::string::npos);
+}
+
+TEST(LocalCert, MinerRuntimeLogDoesNotLeakConfiguredPasswordMarker) {
+    const fs::path fake_pool = find_binary("i_mine_fake_pool");
+    const fs::path miner = find_binary("i_mine");
+    ASSERT_FALSE(fake_pool.empty()) << "i_mine_fake_pool not found";
+    ASSERT_FALSE(miner.empty()) << "i_mine not found";
+
+    const fs::path cfg_path = source_root() / "logs" / "redaction-runtime-config.json";
+    const fs::path miner_log = source_root() / "logs" / "miner-redaction-runtime.log";
+    const fs::path fake_pool_log = source_root() / "logs" / "fake-pool-redaction-runtime.log";
+    fs::create_directories(miner_log.parent_path());
+
+    const std::string marker = "LEAKCHECK_MARKER_ABC123";
+    const std::string cfg = R"({
+    "node_id": "UT-RD",
+    "worker_id": "utrd",
+    "payout_address": "wallet-ut",
+    "pool": {
+        "enabled": true,
+        "host": "127.0.0.1",
+        "port": 3347,
+        "username": "wallet-ut.utrd",
+        "password": "LEAKCHECK_MARKER_ABC123",
+        "notify_timeout_sec": 30,
+        "max_cycles": 1,
+        "reconnect_initial_sec": 1,
+        "reconnect_max_sec": 4
+    },
+    "hashing": {
+        "prefix": "hello-bitcoin",
+        "difficulty_bits": 20,
+        "threads": 1,
+        "report_interval_ms": 200
+    },
+    "logging": {
+        "output": "logs/miner-redaction-runtime-output.log"
+    }
+})";
+
+    {
+        std::ofstream out_cfg(cfg_path);
+        ASSERT_TRUE(out_cfg.is_open());
+        out_cfg << cfg;
+    }
+
+    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
+        const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
+        return std::system(cmd.c_str());
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(350));
+
+    const std::string miner_cmd = redirected_command(miner, "--config " + quote(cfg_path), miner_log);
+    const int miner_rc = std::system(miner_cmd.c_str());
+    EXPECT_EQ(miner_rc, 0);
+
+    const auto server_wait_rc = server_future.wait_for(std::chrono::seconds(10));
+    ASSERT_EQ(server_wait_rc, std::future_status::ready);
+    EXPECT_EQ(server_future.get(), 0);
+
+    const std::string out = read_all(miner_log);
+    EXPECT_NE(out.find("Authorize OK"), std::string::npos);
+    EXPECT_EQ(out.find(marker), std::string::npos);
 }
