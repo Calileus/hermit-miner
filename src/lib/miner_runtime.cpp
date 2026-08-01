@@ -86,6 +86,37 @@ void write_health_snapshot(
         << "}";
 }
 
+double compute_accepted_per_min(const SessionStats& stats, std::uint64_t duration_sec) {
+    const double minutes = duration_sec > 0U ? static_cast<double>(duration_sec) / 60.0 : 0.0;
+    return minutes > 0.0
+        ? static_cast<double>(stats.accepted_count) / minutes
+        : static_cast<double>(stats.accepted_count);
+}
+
+std::string compute_readiness_status(const SessionStats& stats) {
+    if (stats.accepted_count >= 3U && stats.submit_failures == 0U && stats.session_failures == 0U) {
+        return "ready";
+    }
+    if (stats.accepted_count > 0U) {
+        return "degraded";
+    }
+    return "not_ready";
+}
+
+void maybe_write_health_snapshot_incremental(const MinerConfig& cfg, const SessionStats& stats, mining::Logger& logger) {
+    if (!cfg.health_emit_each_cycle) {
+        return;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    const auto duration_sec = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::seconds>(now - stats.started_at).count());
+    const double accepted_per_min = compute_accepted_per_min(stats, duration_sec);
+    const std::string readiness_status = compute_readiness_status(stats);
+
+    write_health_snapshot(cfg, stats, readiness_status, duration_sec, accepted_per_min, logger);
+}
+
 bool start_stratum_session(const MinerConfig& cfg, mining::Logger& logger, mining::StratumClient& client) {
     const std::string username = pool_username(cfg);
 
@@ -162,6 +193,7 @@ int run_stratum_session(const MinerConfig& cfg, mining::Logger& logger, std::uin
         ++cycles_done;
         ++stats.accepted_count;
         stats.last_job_id = job.job_id;
+        maybe_write_health_snapshot_incremental(cfg, stats, logger);
         logger.info("stratum", cfg.node_id, "Stratum cycle completed", job.job_id);
     }
 
@@ -277,6 +309,7 @@ int run_stratum_loop(const MinerConfig& cfg, mining::Logger& logger, const std::
         ++stats.reconnect_events;
         ++stats.session_failures;
         stats.last_failure_rc = rc;
+        maybe_write_health_snapshot_incremental(cfg, stats, logger);
 
         if (cfg.pool_max_reconnect_attempts > 0U && stats.session_failures >= cfg.pool_max_reconnect_attempts) {
             std::ostringstream exhausted;
@@ -304,17 +337,8 @@ int run_stratum_loop(const MinerConfig& cfg, mining::Logger& logger, const std::
     const auto now = std::chrono::steady_clock::now();
     const auto duration_sec = static_cast<std::uint64_t>(
         std::chrono::duration_cast<std::chrono::seconds>(now - stats.started_at).count());
-    const double minutes = duration_sec > 0U ? static_cast<double>(duration_sec) / 60.0 : 0.0;
-    const double accepted_per_min = minutes > 0.0
-        ? static_cast<double>(stats.accepted_count) / minutes
-        : static_cast<double>(stats.accepted_count);
-
-    std::string readiness_status = "not_ready";
-    if (stats.accepted_count >= 3U && stats.submit_failures == 0U && stats.session_failures == 0U) {
-        readiness_status = "ready";
-    } else if (stats.accepted_count > 0U) {
-        readiness_status = "degraded";
-    }
+    const double accepted_per_min = compute_accepted_per_min(stats, duration_sec);
+    const std::string readiness_status = compute_readiness_status(stats);
 
     std::ostringstream summary;
     summary << "accepted_count=" << stats.accepted_count

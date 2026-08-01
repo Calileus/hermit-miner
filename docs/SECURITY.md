@@ -26,6 +26,8 @@ Before production launch, verify:
 Runtime safety guard:
 
 - When `pool.enabled=true`, miner rejects placeholder credential fields containing `REPLACE_WITH`.
+- When `pool.require_tls=true`, miner fails fast because native TLS transport is not yet implemented.
+- For non-local pool hosts, run through a secure tunnel or TLS-terminating proxy until native TLS is added.
 
 ## Logging and Redaction
 

@@ -1,5 +1,8 @@
 if(NOT DEFINED PROJECT_ROOT)
     get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+elseif(NOT IS_ABSOLUTE "${PROJECT_ROOT}")
+    get_filename_component(_default_root "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+    get_filename_component(PROJECT_ROOT "${_default_root}/${PROJECT_ROOT}" ABSOLUTE)
 endif()
 
 if(NOT DEFINED BUILD_DIR)

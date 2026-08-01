@@ -9,6 +9,7 @@
     "username": "REPLACE_WITH_REAL_WALLET_ADDRESS.prod01",
     "password": "REPLACE_WITH_POOL_PASSWORD",
     "password_env": "IMINE_POOL_PASSWORD",
+    "require_tls": false,
     "notify_timeout_sec": 30,
     "max_cycles": 0,
     "max_reconnect_attempts": 0,
@@ -22,6 +23,7 @@
     "report_interval_ms": 500
   },
   "logging": {
-    "output": "logs/miner-prod01.log"
+    "output": "logs/miner-prod01.log",
+    "health_emit_each_cycle": false
   }
 }

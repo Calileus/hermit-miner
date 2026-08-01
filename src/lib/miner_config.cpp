@@ -307,6 +307,8 @@ bool load_config(const std::string& path, MinerConfig& cfg) {
     if (read_string_field(pool, "password_env", text_value) || read_string_field(&root, "password_env", text_value)) {
         cfg.pool_password_env = text_value;
     }
+    if (read_bool_field(pool, "require_tls", cfg.pool_require_tls) || read_bool_field(&root, "require_tls", cfg.pool_require_tls)) {
+    }
     if (read_bool_field(pool, "enabled", cfg.pool_enabled) || read_bool_field(&root, "enabled", cfg.pool_enabled)) {
     }
     if ((read_uint_field(pool, "notify_timeout_sec", uint_value) || read_uint_field(&root, "notify_timeout_sec", uint_value))
@@ -349,6 +351,9 @@ bool load_config(const std::string& path, MinerConfig& cfg) {
     }
     if (read_string_field(logging, "health_output", text_value) || read_string_field(&root, "health_output", text_value)) {
         cfg.health_output = text_value;
+    }
+    if (read_bool_field(logging, "health_emit_each_cycle", cfg.health_emit_each_cycle)
+        || read_bool_field(&root, "health_emit_each_cycle", cfg.health_emit_each_cycle)) {
     }
 
     return true;
@@ -444,6 +449,10 @@ bool validate_config(const MinerConfig& cfg, std::string& error_message) {
     }
     if (cfg.pool_reconnect_max_sec < cfg.pool_reconnect_initial_sec) {
         error_message = "pool.reconnect_max_sec must be greater than or equal to pool.reconnect_initial_sec";
+        return false;
+    }
+    if (cfg.pool_require_tls) {
+        error_message = "pool.require_tls=true is not supported yet; use a secure tunnel/proxy and set pool.require_tls=false";
         return false;
     }
 

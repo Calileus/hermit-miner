@@ -18,6 +18,7 @@ struct MinerConfig {
     std::uint32_t pool_port = 3333;
     std::string pool_password = "x";
     std::string pool_password_env;
+    bool pool_require_tls = false;
     bool pool_enabled = false;
     std::uint32_t pool_notify_timeout_sec = 30;
     std::uint32_t pool_max_cycles = 0;
@@ -30,6 +31,7 @@ struct MinerConfig {
     std::uint32_t report_interval_ms = 1000U;
     std::string log_output = "logs/miner.log";
     std::string health_output;
+    bool health_emit_each_cycle = false;
 };
 
 bool load_config(const std::string& path, MinerConfig& cfg);

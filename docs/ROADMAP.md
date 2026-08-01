@@ -129,6 +129,6 @@ Use this section to track active progress:
 
 - Current milestone: M2 operational evidence collection (scheduled soak history)
 - Blockers: none known in codebase; pending run-history accumulation
-- Last gate run result: `local_quality_check` passed (19/19 tests)
+- Last gate run result: `local_quality_check` passed (21/21 tests)
 - Drill evidence tracking: use `docs/DRILL_LOG.md` and reference latest drill in release checklist
 - Next checkpoint date: _TBD_

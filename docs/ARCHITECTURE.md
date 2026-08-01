@@ -56,6 +56,7 @@
 - Secrets can be supplied by environment variable (`password_env`).
 - Logger redacts known sensitive keys and key/value patterns.
 - Local production config files are git-ignored (`config/*.local.json`).
+- Transport uses plaintext TCP today; `pool.require_tls` is a fail-fast intent flag until native TLS transport is implemented.
 
 ## Configuration Model
 

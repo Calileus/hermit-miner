@@ -594,6 +594,23 @@ TEST(LocalCert, ConfigValidationRejectsPlaceholderPassword) {
     EXPECT_NE(error.find("placeholder"), std::string::npos);
 }
 
+TEST(LocalCert, ConfigValidationRejectsRequireTlsUntilNativeTlsIsImplemented) {
+    MinerConfig cfg;
+    cfg.pool_enabled = true;
+    cfg.pool_host = "pool.example.com";
+    cfg.pool_port = 3333;
+    cfg.pool_username = "wallet.worker";
+    cfg.pool_password = "x";
+    cfg.pool_notify_timeout_sec = 30;
+    cfg.pool_reconnect_initial_sec = 1;
+    cfg.pool_reconnect_max_sec = 8;
+    cfg.pool_require_tls = true;
+
+    std::string error;
+    EXPECT_FALSE(validate_config(cfg, error));
+    EXPECT_NE(error.find("not supported yet"), std::string::npos);
+}
+
 TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
     const std::string flat_json = R"({
   "node_id": "LEGACY-1",
@@ -604,6 +621,7 @@ TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
   "port": 3333,
   "username": "legacy-wallet.legacy01",
   "password": "legacy-pass",
+    "require_tls": false,
   "notify_timeout_sec": 12,
   "max_cycles": 5,
     "max_reconnect_attempts": 9,
@@ -614,7 +632,8 @@ TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
   "threads": 3,
   "report_interval_ms": 222,
     "output": "logs/legacy.log",
-    "health_output": "logs/legacy-health.json"
+        "health_output": "logs/legacy-health.json",
+        "health_emit_each_cycle": true
 })";
 
     const fs::path cfg_path = write_temp_config("legacy-flat-config.json", flat_json);
@@ -627,6 +646,7 @@ TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
     EXPECT_EQ(cfg.pool_port, 3333U);
     EXPECT_EQ(cfg.pool_username, "legacy-wallet.legacy01");
     EXPECT_EQ(cfg.pool_password, "legacy-pass");
+    EXPECT_EQ(cfg.pool_require_tls, false);
     EXPECT_EQ(cfg.pool_notify_timeout_sec, 12U);
     EXPECT_EQ(cfg.pool_max_cycles, 5U);
     EXPECT_EQ(cfg.pool_max_reconnect_attempts, 9U);
@@ -638,6 +658,47 @@ TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
     EXPECT_EQ(cfg.report_interval_ms, 222U);
     EXPECT_EQ(cfg.log_output, "logs/legacy.log");
     EXPECT_EQ(cfg.health_output, "logs/legacy-health.json");
+    EXPECT_EQ(cfg.health_emit_each_cycle, true);
+}
+
+TEST(LocalCert, ConfigParserReadsNestedTransportAndHealthFlags) {
+        const std::string nested_json = R"({
+    "node_id": "NESTED-1",
+    "worker_id": "nested01",
+    "payout_address": "nested-wallet",
+    "pool": {
+        "enabled": true,
+        "host": "localhost",
+        "port": 3333,
+        "username": "nested-wallet.nested01",
+        "password": "nested-pass",
+        "require_tls": true,
+        "notify_timeout_sec": 9,
+        "max_cycles": 2,
+        "max_reconnect_attempts": 3,
+        "reconnect_initial_sec": 1,
+        "reconnect_max_sec": 4
+    },
+    "hashing": {
+        "prefix": "nested-prefix",
+        "difficulty_bits": 20,
+        "threads": 1,
+        "report_interval_ms": 111
+    },
+    "logging": {
+        "output": "logs/nested.log",
+        "health_output": "logs/nested-health.json",
+        "health_emit_each_cycle": true
+    }
+})";
+
+        const fs::path cfg_path = write_temp_config("nested-flags-config.json", nested_json);
+        MinerConfig cfg;
+        ASSERT_TRUE(load_config(cfg_path.string(), cfg));
+
+        EXPECT_EQ(cfg.pool_require_tls, true);
+        EXPECT_EQ(cfg.health_emit_each_cycle, true);
+        EXPECT_EQ(cfg.pool_max_reconnect_attempts, 3U);
 }
 
 TEST(LocalCert, LoggerRedactsSensitiveValues) {
@@ -662,14 +723,14 @@ TEST(LocalCert, LoggerRedactsSensitiveValues) {
 }
 
 TEST(LocalCert, MinerFailsFastWhenReconnectAttemptLimitReached) {
-        const fs::path miner = find_binary("i_mine");
-        ASSERT_FALSE(miner.empty()) << "i_mine not found";
+    const fs::path miner = find_binary("i_mine");
+    ASSERT_FALSE(miner.empty()) << "i_mine not found";
 
-        const fs::path cfg_path = source_root() / "logs" / "reconnect-cap-config.json";
-        const fs::path miner_log = source_root() / "logs" / "miner-reconnect-cap.log";
-        fs::create_directories(miner_log.parent_path());
+    const fs::path cfg_path = source_root() / "logs" / "reconnect-cap-config.json";
+    const fs::path miner_log = source_root() / "logs" / "miner-reconnect-cap.log";
+    fs::create_directories(miner_log.parent_path());
 
-        const std::string cfg = R"({
+    const std::string cfg = R"({
     "node_id": "UT-RC",
     "worker_id": "utrc",
     "payout_address": "wallet-ut",
@@ -696,17 +757,17 @@ TEST(LocalCert, MinerFailsFastWhenReconnectAttemptLimitReached) {
     }
 })";
 
-        {
-                std::ofstream out_cfg(cfg_path);
-                ASSERT_TRUE(out_cfg.is_open());
-                out_cfg << cfg;
-        }
+    {
+        std::ofstream out_cfg(cfg_path);
+        ASSERT_TRUE(out_cfg.is_open());
+        out_cfg << cfg;
+    }
 
-        const std::string miner_cmd = redirected_command(miner, "--config " + quote(cfg_path), miner_log);
-        const int miner_rc = std::system(miner_cmd.c_str());
-        EXPECT_NE(miner_rc, 0);
+    const std::string miner_cmd = redirected_command(miner, "--config " + quote(cfg_path), miner_log);
+    const int miner_rc = std::system(miner_cmd.c_str());
+    EXPECT_NE(miner_rc, 0);
 
-        const std::string out = read_all(miner_log);
-        EXPECT_NE(out.find("Reconnect attempt limit reached"), std::string::npos);
-        EXPECT_NE(out.find("Stratum loop finished"), std::string::npos);
+    const std::string out = read_all(miner_log);
+    EXPECT_NE(out.find("Reconnect attempt limit reached"), std::string::npos);
+    EXPECT_NE(out.find("Stratum loop finished"), std::string::npos);
 }

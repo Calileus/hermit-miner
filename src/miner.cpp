@@ -18,6 +18,10 @@ std::atomic<bool> g_stop_requested{false};
 void on_signal(int /*signal_code*/) {
     g_stop_requested.store(true, std::memory_order_relaxed);
 }
+
+bool is_local_pool_host(const std::string& host) {
+    return host == "127.0.0.1" || host == "localhost" || host == "::1";
+}
 } // namespace
 
 int main(int argc, char** argv) {
@@ -59,6 +63,10 @@ int main(int argc, char** argv) {
             << " pool_user=" << pool_username(cfg)
             << " pool_host=" << cfg.pool_host << ":" << cfg.pool_port;
     logger.info("miner", cfg.node_id, "Independent miner starting", startup.str());
+
+    if (cfg.pool_enabled && !cfg.pool_require_tls && !is_local_pool_host(cfg.pool_host)) {
+        logger.warn("security", cfg.node_id, "Pool transport is plaintext TCP", "consider secure tunnel/proxy for non-local pool host");
+    }
 
     if (cfg.pool_enabled) {
         const int rc = run_stratum_loop(cfg, logger, g_stop_requested);

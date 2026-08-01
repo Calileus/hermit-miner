@@ -355,6 +355,68 @@ Friction and gaps:
 	- docs/SECURITY.md
 	- docs/RUNBOOK.md
 
+### Change Set H - TLS intent guardrail (pre-native TLS)
+
+- Rationale: make transport-security intent explicit and prevent silent assumption that TLS is active.
+- Implemented:
+	- Added `pool.require_tls` config flag parsing.
+	- Added validation failure when `pool.require_tls=true` because native TLS transport is not implemented yet.
+	- Added startup warning for plaintext transport when using non-local pool hosts.
+	- Added regression coverage for parser and validation behavior.
+- Impacted files:
+	- src/lib/miner_config.h
+	- src/lib/miner_config.cpp
+	- src/miner.cpp
+	- src/test/local_cert_tests.cpp
+	- README.md
+	- docs/SECURITY.md
+	- docs/RUNBOOK.md
+	- config/miner-production.template.json
+
+### Change Set I - Incremental health snapshot observability
+
+- Rationale: provide machine-readable mid-session visibility instead of end-of-session-only health state.
+- Implemented:
+	- Added `logging.health_emit_each_cycle` config flag.
+	- Added incremental health snapshot writes after completed Stratum cycles and reconnect failure events.
+	- Enabled flag in local test/soak profiles and documented usage.
+- Impacted files:
+	- src/lib/miner_config.h
+	- src/lib/miner_config.cpp
+	- src/lib/miner_runtime.cpp
+	- config/miner-local-stratum-test.json
+	- config/miner-local-stratum-soak.json
+	- config/miner-production.template.json
+	- src/test/local_cert_tests.cpp
+	- README.md
+	- docs/RUNBOOK.md
+
+### Change Set J - CLI usability and parser coverage polish
+
+- Rationale: remove user-facing formatting defects and increase confidence in new flag parsing.
+- Implemented:
+	- Fixed CLI help/error output to use real newlines instead of escaped literal `\\n` text.
+	- Added regression test for nested parsing of `pool.require_tls` and `logging.health_emit_each_cycle`.
+- Impacted files:
+	- src/lib/miner_cli.cpp
+	- src/test/local_cert_tests.cpp
+
+### Change Set K - Operational script robustness
+
+- Rationale: avoid operator friction and false diagnostics when running CMake scripts directly.
+- Implemented:
+	- Normalized relative `PROJECT_ROOT` handling across operational scripts.
+	- Fixed preflight error list aggregation so reported issue counts match displayed items.
+- Impacted files:
+	- scripts/preflight-prod-configs.cmake
+	- scripts/init-prod-configs.cmake
+	- scripts/local-quality-check.cmake
+	- scripts/ci-secret-scan.cmake
+	- scripts/phase2-cert.cmake
+	- scripts/pre-go-live.cmake
+	- scripts/release-readiness.cmake
+	- scripts/release-summary.cmake
+
 ### Migration Steps
 
 1. Pull latest changes.
@@ -372,7 +434,7 @@ Build verification:
 
 Test verification:
 - Full suite passed with adjusted timeout budget.
-- Result: 19/19 tests passing.
+- Result: 21/21 tests passing.
 
 Coverage by test type:
 - Unit: CLI, config parse/validation, logger redaction checks.

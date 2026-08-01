@@ -25,12 +25,12 @@ bool parse_uint32(const std::string& text, std::uint32_t& out) {
 
 void print_usage() {
     std::cout
-        << "Usage: i_mine [--config path] [--threads N] [--bits N] [--prefix text] [--report-ms N]\\n"
-        << "  --config      Miner JSON config path (default: config/miner-local-stratum.json)\\n"
-        << "  --threads     CPU worker threads override\\n"
-        << "  --bits        Leading zero bits required in hash\\n"
-        << "  --prefix      Payload prefix override\\n"
-        << "  --report-ms   Status print interval in milliseconds\\n";
+    << "Usage: i_mine [--config path] [--threads N] [--bits N] [--prefix text] [--report-ms N]\n"
+    << "  --config      Miner JSON config path (default: config/miner-local-stratum.json)\n"
+    << "  --threads     CPU worker threads override\n"
+    << "  --bits        Leading zero bits required in hash\n"
+    << "  --prefix      Payload prefix override\n"
+    << "  --report-ms   Status print interval in milliseconds\n";
 }
 
 CliParseResult parse_args(int argc, char** argv, std::string& config_path, MinerConfig& cfg) {
@@ -42,7 +42,7 @@ CliParseResult parse_args(int argc, char** argv, std::string& config_path, Miner
         }
 
         if (i + 1 >= argc) {
-            std::cerr << "Missing value for: " << arg << "\\n";
+            std::cerr << "Missing value for: " << arg << "\n";
             return CliParseResult::Error;
         }
 
@@ -50,28 +50,28 @@ CliParseResult parse_args(int argc, char** argv, std::string& config_path, Miner
         if (arg == "--config") {
             config_path = value;
             if (!load_config(config_path, cfg)) {
-                std::cerr << "Failed to read config file: " << config_path << "\\n";
+                std::cerr << "Failed to read config file: " << config_path << "\n";
                 return CliParseResult::Error;
             }
         } else if (arg == "--prefix") {
             cfg.prefix = value;
         } else if (arg == "--bits") {
             if (!parse_uint32(value, cfg.difficulty_bits) || cfg.difficulty_bits > 255U) {
-                std::cerr << "Invalid --bits value\\n";
+                std::cerr << "Invalid --bits value\n";
                 return CliParseResult::Error;
             }
         } else if (arg == "--threads") {
             if (!parse_uint32(value, cfg.thread_count) || cfg.thread_count == 0U) {
-                std::cerr << "Invalid --threads value\\n";
+                std::cerr << "Invalid --threads value\n";
                 return CliParseResult::Error;
             }
         } else if (arg == "--report-ms") {
             if (!parse_uint32(value, cfg.report_interval_ms) || cfg.report_interval_ms == 0U) {
-                std::cerr << "Invalid --report-ms value\\n";
+                std::cerr << "Invalid --report-ms value\n";
                 return CliParseResult::Error;
             }
         } else {
-            std::cerr << "Unknown option: " << arg << "\\n";
+            std::cerr << "Unknown option: " << arg << "\n";
             return CliParseResult::Error;
         }
     }

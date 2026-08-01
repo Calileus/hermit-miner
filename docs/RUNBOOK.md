@@ -26,6 +26,7 @@ ctest --test-dir build -C Release --output-on-failure --timeout 180 -V
    ```
 2. Fill each `config/miner-prod-*.local.json` with real values.
   - Startup will fail if `pool.username` or `pool.password` still contains `REPLACE_WITH`.
+  - Keep `pool.require_tls=false` for now; if set to true, startup fails until native TLS support is implemented.
 3. Prefer secret-by-env:
    - Set `pool.password_env` (for example `IMINE_POOL_PASSWORD`).
    - Export the variable on each machine before launch.
@@ -33,6 +34,7 @@ ctest --test-dir build -C Release --output-on-failure --timeout 180 -V
    ```sh
    cmake --build build --target pre_go_live_check --config Release
    ```
+  - Preflight also validates that `pool.require_tls` remains `false` (until native TLS is implemented) and that `logging.health_emit_each_cycle=true` is paired with `logging.health_output`.
 5. Complete manual checks from `LOCAL_CERTIFICATION_CHECKLIST.md`.
 
 Reconnect policy tip:
@@ -41,6 +43,11 @@ Reconnect policy tip:
 - Use a finite `pool.max_reconnect_attempts` for bounded validation profiles so pool outages fail fast instead of looping indefinitely.
 - When the cap is reached, miner exits non-zero and logs `Reconnect attempt limit reached` for deterministic gate behavior.
 - Keep `pool.reconnect_max_sec >= pool.reconnect_initial_sec`.
+- For non-local pool hosts, prefer secure tunnel/proxy deployment.
+
+Health snapshot tip:
+
+- Set `logging.health_emit_each_cycle=true` to keep the health snapshot updated during long-running sessions.
 
 ## Start / Stop
 

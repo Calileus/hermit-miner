@@ -22,6 +22,7 @@
   },
   "logging": {
     "output": "logs/miner-offline-stratum-soak.log",
-    "health_output": "logs/miner-offline-stratum-soak-health.json"
+    "health_output": "logs/miner-offline-stratum-soak-health.json",
+    "health_emit_each_cycle": true
   }
 }

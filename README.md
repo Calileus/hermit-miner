@@ -110,6 +110,8 @@ Security note:
 
 - Prefer setting `pool.password_env` in config and supplying the real password via environment variable, instead of storing secrets in plaintext files.
 - `pool.host` supports both IP addresses and DNS hostnames.
+- `pool.require_tls` is a forward-compatibility guardrail; when set to `true`, startup fails because native TLS transport is not yet implemented.
+- For remote/non-local pools, use a secure tunnel or TLS-terminating proxy in front of the miner.
 
 Example (PowerShell):
 
@@ -176,6 +178,7 @@ At shutdown, miner logs emit two operational lines:
 Optional machine-readable output:
 
 - Set `logging.health_output` to write a JSON health snapshot file at end of session.
+- Set `logging.health_emit_each_cycle=true` to update the health snapshot incrementally after each completed Stratum cycle and reconnect failure event.
 
 Key fields in `Shutdown summary`:
 
