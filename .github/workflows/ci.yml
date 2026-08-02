@@ -24,23 +24,23 @@ jobs:
         run: cmake -DPROJECT_ROOT=. -P scripts/ci-secret-scan.cmake
 
       - name: Configure (CMake)
-        run: cmake -S . -B build -DBUILD_TESTING=ON
+        run: cmake --preset ci
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
-        run: cmake --build build --config Release
+        run: cmake --build --preset ci-build
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
-        run: cmake --build build
+        run: cmake --build --preset ci-build
 
       - name: Test (Windows)
         if: runner.os == 'Windows'
-        run: ctest --test-dir build -C Release --output-on-failure --timeout 180 -V
+        run: ctest --preset ci-test --output-on-failure --timeout 180 -V
 
       - name: Test (Linux)
         if: runner.os == 'Linux'
-        run: ctest --test-dir build --output-on-failure --timeout 180 -V
+        run: ctest --preset ci-test --output-on-failure --timeout 180 -V
 
       - name: Upload CTest logs on failure
         if: failure()
@@ -48,5 +48,5 @@ jobs:
         with:
           name: ctest-logs-${{ matrix.os }}
           path: |
-            build/Testing/**
+            build/ci/Testing/**
             logs/**

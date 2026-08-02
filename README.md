@@ -41,6 +41,22 @@ CPU mining will not mine real Bitcoin profitably. Mainnet mining requires ASIC h
 
 ## Build
 
+Canonical build method (presets):
+
+```sh
+cmake --preset dev
+cmake --build --preset dev-build
+ctest --preset dev-test --output-on-failure
+```
+
+Canonical CI method:
+
+```sh
+cmake --preset ci
+cmake --build --preset ci-build
+ctest --preset ci-test --output-on-failure
+```
+
 ```sh
 cmake -S . -B build -DBUILD_TESTING=ON
 cmake --build build --config Release
