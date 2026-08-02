@@ -64,7 +64,9 @@ fs::path find_binary(const std::string& name_no_ext) {
     const std::string exe = name_no_ext;
 #endif
     const fs::path root = source_root();
-    const std::array<fs::path, 4> candidates = {
+    const std::array<fs::path, 6> candidates = {
+        root / "build" / "ci" / "Release" / exe,
+        root / "build" / "ci" / exe,
         root / "build" / "Release" / exe,
         root / "build" / "RelWithDebInfo" / exe,
         root / "build" / "Debug" / exe,
