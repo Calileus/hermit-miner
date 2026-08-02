@@ -1,42 +1,106 @@
-﻿# Build artifacts
-build/
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-compile_commands.json
-CTestTestfile.cmake
-Testing/
-
-# Binaries and objects
-*.exe
-*.dll
-*.lib
-*.obj
+# ------------------------------------------------------------
+# C++ / Build artifacts
+# ------------------------------------------------------------
+*.d
+*.slo
+*.lo
 *.o
-*.pdb
+*.obj
+*.gch
+*.pch
 *.ilk
+*.pdb
+*.dwo
 
-# IDE and editor
-.vs/
-.vscode/
-*.user
-*.suo
-*.VC.db
-*.VC.opendb
-CMakeUserPresets.json
-.idea/
+*.so
+*.dylib
+*.dll
+*.mod
+*.smod
+*.lai
+*.la
+*.a
+*.lib
 
-# Runtime outputs
+*.exe
+*.out
+*.app
+
+# ------------------------------------------------------------
+# CMake / Ninja / CTest
+# ------------------------------------------------------------
+**/build/
+**/build_*/
+**/cmake-build-*/
+
+CMakeCache.txt
+**/CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+**/Testing/
+DartConfiguration.tcl
+compile_commands.json
+
+*.ninja
+.ninja_deps
+.ninja_log
+
+# ------------------------------------------------------------
+# Generated docs
+# ------------------------------------------------------------
+**/doc/
+**/html/
+**/latex/
+
+# ------------------------------------------------------------
+# IDE / Editor
+# ------------------------------------------------------------
+**/.vscode/
+**/.vs/
+**/.idea/
+
+# ------------------------------------------------------------
+# Python artifacts
+# ------------------------------------------------------------
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+**/.venv/
+**/venv/
+**/env/
+**/ENV/
+
+# Packaging / distribution
+**/dist/
+*.egg-info/
+**/.eggs/
+**/pip-wheel-metadata/
+
+# Tool caches
+**/.mypy_cache/
+**/.pytest_cache/
+**/.ruff_cache/
+.coverage
+.coverage.*
+**/htmlcov/
+
+# Jupyter
+**/.ipynb_checkpoints/
+
+# ------------------------------------------------------------
+# OS files
+# ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------------------------------------------
+# i_mine project-specific
+# ------------------------------------------------------------
 logs/
-*.log
-
-# Local production miner configs (machine-specific, may contain secrets)
 config/*.local.json
 config/*secret*.json
-
-# Secrets and credentials
-.env
-.env.*
 *.pem
 *.key
 *.p12
@@ -44,13 +108,5 @@ config/*secret*.json
 *.secret
 *.secrets
 *credentials*
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.swp
-*.swo
 *~
+
