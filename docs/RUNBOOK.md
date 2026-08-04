@@ -1,4 +1,4 @@
-# i_mine Operations Runbook
+# hermit_miner Operations Runbook
 
 ## Scope
 
@@ -53,7 +53,7 @@ Health snapshot tip:
 
 - Start (Windows):
   ```sh
-  .\build\Release\i_mine --config config/miner-prod-cp1.local.json
+  .\build\Release\hermit_miner --config config/miner-prod-cp1.local.json
   ```
 - Stop:
   - Use `Ctrl+C` and confirm `Graceful shutdown complete` appears in logs.

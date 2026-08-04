@@ -13,7 +13,7 @@ Run each computer as its own standalone miner process:
 
 Implemented:
 
-- standalone i_mine executable
+- standalone hermit_miner executable
 - offline Stratum client flow (subscribe, authorize, notify, submit)
 - local fake pool for offline integration testing
 - reconnect loop with backoff

@@ -1,4 +1,4 @@
-# i_mine Enterprise Roadmap
+# hermit_miner Enterprise Roadmap
 
 Status date: 2026-07-31
 Reference: `ENTERPRISE_READINESS_REPORT.md`

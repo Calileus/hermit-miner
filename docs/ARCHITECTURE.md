@@ -1,19 +1,19 @@
-# i_mine Architecture
+# hermit_miner Architecture
 
 ## Purpose
 
-`i_mine` is a standalone Stratum miner scaffold intended for local certification and controlled production rollout across independent machines.
+`hermit_miner` is a standalone Stratum miner scaffold intended for local certification and controlled production rollout across independent machines.
 
 ## Runtime Components
 
-- `i_mine` executable (`src/miner.cpp`)
+- `hermit_miner` executable (`src/miner.cpp`)
   - Loads config and CLI overrides.
   - Establishes Stratum session loop when pool mode is enabled.
   - Runs CPU double-SHA256 proof-of-work workers.
   - Emits readiness and shutdown telemetry lines.
-- `i_mine_fake_pool` executable (`src/fake_pool.cpp`)
+- `hermit_miner_fake_pool` executable (`src/fake_pool.cpp`)
   - Simulates subscribe/authorize/notify/submit Stratum flow for deterministic offline integration tests.
-- `i_mine_lib` (`src/lib/*.cpp`, `src/sha256.cpp`)
+- `hermit_miner_lib` (`src/lib/*.cpp`, `src/sha256.cpp`)
   - `miner_cli`: command-line parsing and usage output.
   - `StratumClient`: socket transport and JSON-RPC message flow.
   - `Logger`: JSON-line logging with sensitive field redaction.
@@ -34,7 +34,7 @@
 
 ## Data Flow
 
-1. Operator starts `i_mine` with a config file.
+1. Operator starts `hermit_miner` with a config file.
 2. Config is loaded and validated (including optional `pool.password_env`).
 3. Miner connects to pool host/port via DNS/IP resolution.
 4. Miner performs Stratum subscribe + authorize.

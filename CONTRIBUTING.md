@@ -1,4 +1,4 @@
-# Contributing to i_mine
+# Contributing to hermit_miner
 
 ## Scope
 

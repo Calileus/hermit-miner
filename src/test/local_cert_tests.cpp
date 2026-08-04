@@ -29,88 +29,103 @@
 
 namespace fs = std::filesystem;
 
-namespace {
+namespace
+{
 
-std::string quote(const fs::path& p) {
-    return std::string("\"") + p.string() + "\"";
-}
-
-std::string redirected_command(const fs::path& exe, const std::string& args, const fs::path& log_path) {
-#ifdef _WIN32
-    std::string cmd = "cmd /C \"\"" + exe.string() + "\"";
-    if (!args.empty()) {
-        cmd += " " + args;
+    std::string quote(const fs::path &p)
+    {
+        return std::string("\"") + p.string() + "\"";
     }
-    cmd += " > \"" + log_path.string() + "\" 2>&1\"";
-    return cmd;
-#else
-    std::string cmd = quote(exe);
-    if (!args.empty()) {
-        cmd += " " + args;
-    }
-    cmd += " > " + quote(log_path) + " 2>&1";
-    return cmd;
-#endif
-}
 
-fs::path source_root() {
-    return fs::path(IMINE_SOURCE_DIR);
-}
-
-fs::path find_binary(const std::string& name_no_ext) {
+    std::string redirected_command(const fs::path &exe, const std::string &args, const fs::path &log_path)
+    {
 #ifdef _WIN32
-    const std::string exe = name_no_ext + ".exe";
-#else
-    const std::string exe = name_no_ext;
-#endif
-    const fs::path root = source_root();
-    const std::array<fs::path, 6> candidates = {
-        root / "build" / "ci" / "Release" / exe,
-        root / "build" / "ci" / exe,
-        root / "build" / "Release" / exe,
-        root / "build" / "RelWithDebInfo" / exe,
-        root / "build" / "Debug" / exe,
-        root / "build" / exe
-    };
-
-    for (const auto& p : candidates) {
-        if (fs::exists(p)) {
-            return p;
+        std::string cmd = "cmd /C \"\"" + exe.string() + "\"";
+        if (!args.empty())
+        {
+            cmd += " " + args;
         }
+        cmd += " > \"" + log_path.string() + "\" 2>&1\"";
+        return cmd;
+#else
+        std::string cmd = quote(exe);
+        if (!args.empty())
+        {
+            cmd += " " + args;
+        }
+        cmd += " > " + quote(log_path) + " 2>&1";
+        return cmd;
+#endif
     }
-    return {};
-}
 
-std::string read_all(const fs::path& p) {
-    std::ifstream in(p);
-    std::ostringstream oss;
-    oss << in.rdbuf();
-    return oss.str();
-}
-
-std::size_t count_occurrences(const std::string& text, const std::string& token) {
-    if (token.empty()) {
-        return 0;
+    fs::path source_root()
+    {
+        return fs::path(IMINE_SOURCE_DIR);
     }
-    std::size_t count = 0;
-    std::size_t pos = 0;
-    while ((pos = text.find(token, pos)) != std::string::npos) {
-        ++count;
-        pos += token.size();
-    }
-    return count;
-}
 
-bool replace_once(std::string& text, const std::string& from, const std::string& to) {
-    const std::size_t pos = text.find(from);
-    if (pos == std::string::npos) {
-        return false;
-    }
-    text.replace(pos, from.size(), to);
-    return true;
-}
+    fs::path find_binary(const std::string &name_no_ext)
+    {
+#ifdef _WIN32
+        const std::string exe = name_no_ext + ".exe";
+#else
+        const std::string exe = name_no_ext;
+#endif
+        const fs::path root = source_root();
+        const std::array<fs::path, 6> candidates = {
+            root / "build" / "ci" / "Release" / exe,
+            root / "build" / "ci" / exe,
+            root / "build" / "Release" / exe,
+            root / "build" / "RelWithDebInfo" / exe,
+            root / "build" / "Debug" / exe,
+            root / "build" / exe};
 
-std::string make_test_config_json() {
+        for (const auto &p : candidates)
+        {
+            if (fs::exists(p))
+            {
+                return p;
+            }
+        }
+        return {};
+    }
+
+    std::string read_all(const fs::path &p)
+    {
+        std::ifstream in(p);
+        std::ostringstream oss;
+        oss << in.rdbuf();
+        return oss.str();
+    }
+
+    std::size_t count_occurrences(const std::string &text, const std::string &token)
+    {
+        if (token.empty())
+        {
+            return 0;
+        }
+        std::size_t count = 0;
+        std::size_t pos = 0;
+        while ((pos = text.find(token, pos)) != std::string::npos)
+        {
+            ++count;
+            pos += token.size();
+        }
+        return count;
+    }
+
+    bool replace_once(std::string &text, const std::string &from, const std::string &to)
+    {
+        const std::size_t pos = text.find(from);
+        if (pos == std::string::npos)
+        {
+            return false;
+        }
+        text.replace(pos, from.size(), to);
+        return true;
+    }
+
+    std::string make_test_config_json()
+    {
         return R"({
     "node_id": "UT-1",
     "worker_id": "ut1",
@@ -136,86 +151,100 @@ std::string make_test_config_json() {
         "output": "logs/miner-ut.log"
     }
 })";
-}
+    }
 
-fs::path write_temp_config(const std::string& name, const std::string& content) {
+    fs::path write_temp_config(const std::string &name, const std::string &content)
+    {
         const fs::path out_path = source_root() / "logs" / name;
         fs::create_directories(out_path.parent_path());
         std::ofstream out(out_path);
         out << content;
         return out_path;
-}
+    }
 
 #ifdef _WIN32
-using SocketType = SOCKET;
-constexpr SocketType kInvalidSocket = INVALID_SOCKET;
+    using SocketType = SOCKET;
+    constexpr SocketType kInvalidSocket = INVALID_SOCKET;
 #else
-using SocketType = int;
-constexpr SocketType kInvalidSocket = -1;
+    using SocketType = int;
+    constexpr SocketType kInvalidSocket = -1;
 #endif
 
-void close_socket(SocketType fd) {
+    void close_socket(SocketType fd)
+    {
 #ifdef _WIN32
-    if (fd != kInvalidSocket) {
-        closesocket(fd);
-    }
+        if (fd != kInvalidSocket)
+        {
+            closesocket(fd);
+        }
 #else
-    if (fd != kInvalidSocket) {
-        close(fd);
-    }
+        if (fd != kInvalidSocket)
+        {
+            close(fd);
+        }
 #endif
-}
+    }
 
-bool send_line(SocketType fd, const std::string& line) {
-    const std::string out = line + "\n";
-    const char* ptr = out.c_str();
-    std::size_t left = out.size();
-    while (left > 0) {
+    bool send_line(SocketType fd, const std::string &line)
+    {
+        const std::string out = line + "\n";
+        const char *ptr = out.c_str();
+        std::size_t left = out.size();
+        while (left > 0)
+        {
 #ifdef _WIN32
-        const int sent = send(fd, ptr, static_cast<int>(left), 0);
+            const int sent = send(fd, ptr, static_cast<int>(left), 0);
 #else
-        const ssize_t sent = send(fd, ptr, left, 0);
+            const ssize_t sent = send(fd, ptr, left, 0);
 #endif
-        if (sent <= 0) {
-            return false;
+            if (sent <= 0)
+            {
+                return false;
+            }
+            ptr += sent;
+            left -= static_cast<std::size_t>(sent);
         }
-        ptr += sent;
-        left -= static_cast<std::size_t>(sent);
+        return true;
     }
-    return true;
-}
 
-bool recv_line(SocketType fd, std::string& out) {
-    out.clear();
-    char ch = 0;
-    while (true) {
+    bool recv_line(SocketType fd, std::string &out)
+    {
+        out.clear();
+        char ch = 0;
+        while (true)
+        {
 #ifdef _WIN32
-        const int rc = recv(fd, &ch, 1, 0);
+            const int rc = recv(fd, &ch, 1, 0);
 #else
-        const ssize_t rc = recv(fd, &ch, 1, 0);
+            const ssize_t rc = recv(fd, &ch, 1, 0);
 #endif
-        if (rc <= 0) {
-            return false;
-        }
-        if (ch == '\n') {
-            return true;
-        }
-        if (ch != '\r') {
-            out.push_back(ch);
+            if (rc <= 0)
+            {
+                return false;
+            }
+            if (ch == '\n')
+            {
+                return true;
+            }
+            if (ch != '\r')
+            {
+                out.push_back(ch);
+            }
         }
     }
-}
 
 } // namespace
 
-TEST(LocalCert, ConfigDefaultsInfiniteMode) {
+TEST(LocalCert, ConfigDefaultsInfiniteMode)
+{
     const std::string cfg = read_all(source_root() / "config" / "miner-local-stratum.json");
     ASSERT_NE(cfg.find("\"max_cycles\": 0"), std::string::npos);
 }
 
-TEST(LocalCert, FakePoolRawHandshakeFlow) {
-    const fs::path fake_pool = find_binary("i_mine_fake_pool");
-    ASSERT_FALSE(fake_pool.empty()) << "i_mine_fake_pool not found";
+TEST(LocalCert, FakePoolRawHandshakeFlow)
+{
+    const fs::path fake_pool = find_binary("hermit_miner_fake_pool");
+    ASSERT_FALSE(fake_pool.empty()) << "hermit_miner_fake_pool not found";
 
 #ifdef _WIN32
     WSADATA wsa{};
@@ -225,10 +254,10 @@ TEST(LocalCert, FakePoolRawHandshakeFlow) {
     const fs::path fake_pool_log = source_root() / "logs" / "fake-pool-test.log";
     fs::create_directories(fake_pool_log.parent_path());
 
-    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
+    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]()
+                                    {
         const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
-        return std::system(cmd.c_str());
-    });
+        return std::system(cmd.c_str()); });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
@@ -239,7 +268,7 @@ TEST(LocalCert, FakePoolRawHandshakeFlow) {
     addr.sin_family = AF_INET;
     addr.sin_port = htons(3347);
     ASSERT_EQ(inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr), 1);
-    ASSERT_EQ(connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)), 0);
+    ASSERT_EQ(connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)), 0);
 
     ASSERT_TRUE(send_line(fd, "{\"id\":1,\"method\":\"mining.subscribe\",\"params\":[\"local-cert\"]}"));
     std::string line;
@@ -268,20 +297,21 @@ TEST(LocalCert, FakePoolRawHandshakeFlow) {
 #endif
 }
 
-TEST(LocalCert, MinerMultiCycleSessionAgainstFakePool) {
-    const fs::path fake_pool = find_binary("i_mine_fake_pool");
-    const fs::path miner = find_binary("i_mine");
-    ASSERT_FALSE(fake_pool.empty()) << "i_mine_fake_pool not found";
-    ASSERT_FALSE(miner.empty()) << "i_mine not found";
+TEST(LocalCert, MinerMultiCycleSessionAgainstFakePool)
+{
+    const fs::path fake_pool = find_binary("hermit_miner_fake_pool");
+    const fs::path miner = find_binary("hermit_miner");
+    ASSERT_FALSE(fake_pool.empty()) << "hermit_miner_fake_pool not found";
+    ASSERT_FALSE(miner.empty()) << "hermit_miner not found";
 
     const fs::path fake_pool_log = source_root() / "logs" / "fake-pool-integration.log";
     const fs::path miner_log = source_root() / "logs" / "miner-integration.log";
     fs::create_directories(miner_log.parent_path());
 
-    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
+    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]()
+                                    {
         const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
-        return std::system(cmd.c_str());
-    });
+        return std::system(cmd.c_str()); });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(350));
 
@@ -306,11 +336,12 @@ TEST(LocalCert, MinerMultiCycleSessionAgainstFakePool) {
     EXPECT_GE(share_accepts, 3U);
 }
 
-TEST(LocalCert, MinerSupportsHostnamePoolHost) {
-    const fs::path fake_pool = find_binary("i_mine_fake_pool");
-    const fs::path miner = find_binary("i_mine");
-    ASSERT_FALSE(fake_pool.empty()) << "i_mine_fake_pool not found";
-    ASSERT_FALSE(miner.empty()) << "i_mine not found";
+TEST(LocalCert, MinerSupportsHostnamePoolHost)
+{
+    const fs::path fake_pool = find_binary("hermit_miner_fake_pool");
+    const fs::path miner = find_binary("hermit_miner");
+    ASSERT_FALSE(fake_pool.empty()) << "hermit_miner_fake_pool not found";
+    ASSERT_FALSE(miner.empty()) << "hermit_miner not found";
 
     const fs::path fake_pool_log = source_root() / "logs" / "fake-pool-hostname.log";
     const fs::path miner_log = source_root() / "logs" / "miner-hostname.log";
@@ -318,7 +349,8 @@ TEST(LocalCert, MinerSupportsHostnamePoolHost) {
     const fs::path base_cfg = source_root() / "config" / "miner-local-stratum-test.json";
     const fs::path hostname_cfg = source_root() / "logs" / "miner-local-stratum-hostname.json";
     fs::create_directories(miner_log.parent_path());
-    if (fs::exists(health_log)) {
+    if (fs::exists(health_log))
+    {
         fs::remove(health_log);
     }
 
@@ -337,10 +369,10 @@ TEST(LocalCert, MinerSupportsHostnamePoolHost) {
         out_cfg << cfg_text;
     }
 
-    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
+    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]()
+                                    {
         const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
-        return std::system(cmd.c_str());
-    });
+        return std::system(cmd.c_str()); });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(350));
 
@@ -362,11 +394,12 @@ TEST(LocalCert, MinerSupportsHostnamePoolHost) {
     EXPECT_NE(health_out.find("\"accepted_count\":3"), std::string::npos);
 }
 
-TEST(LocalCert, MinerSoakProfileAgainstFakePool) {
-    const fs::path fake_pool = find_binary("i_mine_fake_pool");
-    const fs::path miner = find_binary("i_mine");
-    ASSERT_FALSE(fake_pool.empty()) << "i_mine_fake_pool not found";
-    ASSERT_FALSE(miner.empty()) << "i_mine not found";
+TEST(LocalCert, MinerSoakProfileAgainstFakePool)
+{
+    const fs::path fake_pool = find_binary("hermit_miner_fake_pool");
+    const fs::path miner = find_binary("hermit_miner");
+    ASSERT_FALSE(fake_pool.empty()) << "hermit_miner_fake_pool not found";
+    ASSERT_FALSE(miner.empty()) << "hermit_miner not found";
 
     const fs::path fake_pool_log = source_root() / "logs" / "fake-pool-soak.log";
     const fs::path miner_log = source_root() / "logs" / "miner-soak.log";
@@ -374,7 +407,8 @@ TEST(LocalCert, MinerSoakProfileAgainstFakePool) {
     const fs::path base_cfg = source_root() / "config" / "miner-local-stratum-soak.json";
     const fs::path soak_cfg = source_root() / "logs" / "miner-local-stratum-soak-abs.json";
     fs::create_directories(miner_log.parent_path());
-    if (fs::exists(health_log)) {
+    if (fs::exists(health_log))
+    {
         fs::remove(health_log);
     }
 
@@ -391,10 +425,10 @@ TEST(LocalCert, MinerSoakProfileAgainstFakePool) {
         out_cfg << cfg_text;
     }
 
-    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
+    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]()
+                                    {
         const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
-        return std::system(cmd.c_str());
-    });
+        return std::system(cmd.c_str()); });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(350));
 
@@ -417,14 +451,16 @@ TEST(LocalCert, MinerSoakProfileAgainstFakePool) {
     EXPECT_NE(health_out.find("\"accepted_count\":25"), std::string::npos);
 }
 
-TEST(LocalCert, ConfigParserRejectsMalformedJson) {
+TEST(LocalCert, ConfigParserRejectsMalformedJson)
+{
     const fs::path cfg_path = write_temp_config("malformed-config.json", "{\"pool\": {\"enabled\": true");
 
     MinerConfig cfg;
     EXPECT_FALSE(load_config(cfg_path.string(), cfg));
 }
 
-TEST(LocalCert, CliParsesOverridesFromConfigAndFlags) {
+TEST(LocalCert, CliParsesOverridesFromConfigAndFlags)
+{
     const fs::path cfg_path = write_temp_config("cli-override-config.json", make_test_config_json());
 
     MinerConfig cfg;
@@ -432,17 +468,17 @@ TEST(LocalCert, CliParsesOverridesFromConfigAndFlags) {
     std::string config_path = cfg_path.string();
 
     std::vector<std::string> args_storage = {
-        "i_mine",
+        "hermit_miner",
         "--config", cfg_path.string(),
         "--threads", "4",
         "--bits", "21",
         "--prefix", "cli-prefix",
-        "--report-ms", "999"
-    };
+        "--report-ms", "999"};
 
-    std::vector<char*> argv;
+    std::vector<char *> argv;
     argv.reserve(args_storage.size());
-    for (std::string& arg : args_storage) {
+    for (std::string &arg : args_storage)
+    {
         argv.push_back(arg.data());
     }
 
@@ -454,79 +490,84 @@ TEST(LocalCert, CliParsesOverridesFromConfigAndFlags) {
     EXPECT_EQ(cfg.report_interval_ms, 999U);
 }
 
-TEST(LocalCert, CliRejectsUnknownOption) {
+TEST(LocalCert, CliRejectsUnknownOption)
+{
     MinerConfig cfg;
     std::string config_path = "config/miner-local-stratum.json";
 
     std::vector<std::string> args_storage = {
-        "i_mine",
-        "--unknown", "x"
-    };
+        "hermit_miner",
+        "--unknown", "x"};
 
-    std::vector<char*> argv;
+    std::vector<char *> argv;
     argv.reserve(args_storage.size());
-    for (std::string& arg : args_storage) {
+    for (std::string &arg : args_storage)
+    {
         argv.push_back(arg.data());
     }
 
     EXPECT_EQ(parse_args(static_cast<int>(argv.size()), argv.data(), config_path, cfg), CliParseResult::Error);
 }
 
-TEST(LocalCert, CliRejectsUnknownOptionWithoutValue) {
+TEST(LocalCert, CliRejectsUnknownOptionWithoutValue)
+{
     MinerConfig cfg;
     std::string config_path = "config/miner-local-stratum.json";
 
     std::vector<std::string> args_storage = {
-        "i_mine",
-        "--no-such-option"
-    };
+        "hermit_miner",
+        "--no-such-option"};
 
-    std::vector<char*> argv;
+    std::vector<char *> argv;
     argv.reserve(args_storage.size());
-    for (std::string& arg : args_storage) {
+    for (std::string &arg : args_storage)
+    {
         argv.push_back(arg.data());
     }
 
     EXPECT_EQ(parse_args(static_cast<int>(argv.size()), argv.data(), config_path, cfg), CliParseResult::Error);
 }
 
-TEST(LocalCert, CliHelpReturnsHelpShown) {
+TEST(LocalCert, CliHelpReturnsHelpShown)
+{
     MinerConfig cfg;
     std::string config_path = "config/miner-local-stratum.json";
 
     std::vector<std::string> args_storage = {
-        "i_mine",
-        "--help"
-    };
+        "hermit_miner",
+        "--help"};
 
-    std::vector<char*> argv;
+    std::vector<char *> argv;
     argv.reserve(args_storage.size());
-    for (std::string& arg : args_storage) {
+    for (std::string &arg : args_storage)
+    {
         argv.push_back(arg.data());
     }
 
     EXPECT_EQ(parse_args(static_cast<int>(argv.size()), argv.data(), config_path, cfg), CliParseResult::HelpShown);
 }
 
-TEST(LocalCert, CliRejectsMissingOptionValue) {
+TEST(LocalCert, CliRejectsMissingOptionValue)
+{
     MinerConfig cfg;
     std::string config_path = "config/miner-local-stratum.json";
 
     std::vector<std::string> args_storage = {
-        "i_mine",
-        "--threads"
-    };
+        "hermit_miner",
+        "--threads"};
 
-    std::vector<char*> argv;
+    std::vector<char *> argv;
     argv.reserve(args_storage.size());
-    for (std::string& arg : args_storage) {
+    for (std::string &arg : args_storage)
+    {
         argv.push_back(arg.data());
     }
 
     EXPECT_EQ(parse_args(static_cast<int>(argv.size()), argv.data(), config_path, cfg), CliParseResult::Error);
 }
 
-TEST(LocalCert, ConfigValidationRejectsEnabledPoolWithoutHost) {
+TEST(LocalCert, ConfigValidationRejectsEnabledPoolWithoutHost)
+{
     MinerConfig cfg;
     cfg.pool_enabled = true;
     cfg.pool_host.clear();
@@ -540,7 +581,8 @@ TEST(LocalCert, ConfigValidationRejectsEnabledPoolWithoutHost) {
     EXPECT_NE(error.find("pool.host"), std::string::npos);
 }
 
-TEST(LocalCert, ConfigValidationAcceptsDisabledPoolMinimalConfig) {
+TEST(LocalCert, ConfigValidationAcceptsDisabledPoolMinimalConfig)
+{
     MinerConfig cfg;
     cfg.pool_enabled = false;
     cfg.thread_count = 1;
@@ -550,7 +592,8 @@ TEST(LocalCert, ConfigValidationAcceptsDisabledPoolMinimalConfig) {
     EXPECT_TRUE(validate_config(cfg, error));
 }
 
-TEST(LocalCert, ConfigValidationRejectsReconnectMaxLessThanInitial) {
+TEST(LocalCert, ConfigValidationRejectsReconnectMaxLessThanInitial)
+{
     MinerConfig cfg;
     cfg.pool_enabled = true;
     cfg.pool_host = "localhost";
@@ -566,7 +609,8 @@ TEST(LocalCert, ConfigValidationRejectsReconnectMaxLessThanInitial) {
     EXPECT_NE(error.find("reconnect_max_sec"), std::string::npos);
 }
 
-TEST(LocalCert, ConfigValidationAcceptsZeroReconnectAttemptCapAsUnlimited) {
+TEST(LocalCert, ConfigValidationAcceptsZeroReconnectAttemptCapAsUnlimited)
+{
     MinerConfig cfg;
     cfg.pool_enabled = true;
     cfg.pool_host = "localhost";
@@ -582,7 +626,8 @@ TEST(LocalCert, ConfigValidationAcceptsZeroReconnectAttemptCapAsUnlimited) {
     EXPECT_TRUE(validate_config(cfg, error));
 }
 
-TEST(LocalCert, ConfigValidationRejectsPlaceholderUsername) {
+TEST(LocalCert, ConfigValidationRejectsPlaceholderUsername)
+{
     MinerConfig cfg;
     cfg.pool_enabled = true;
     cfg.pool_host = "localhost";
@@ -598,7 +643,8 @@ TEST(LocalCert, ConfigValidationRejectsPlaceholderUsername) {
     EXPECT_NE(error.find("placeholder"), std::string::npos);
 }
 
-TEST(LocalCert, ConfigValidationRejectsPlaceholderPassword) {
+TEST(LocalCert, ConfigValidationRejectsPlaceholderPassword)
+{
     MinerConfig cfg;
     cfg.pool_enabled = true;
     cfg.pool_host = "localhost";
@@ -614,7 +660,8 @@ TEST(LocalCert, ConfigValidationRejectsPlaceholderPassword) {
     EXPECT_NE(error.find("placeholder"), std::string::npos);
 }
 
-TEST(LocalCert, ConfigValidationRejectsRequireTlsUntilNativeTlsIsImplemented) {
+TEST(LocalCert, ConfigValidationRejectsRequireTlsUntilNativeTlsIsImplemented)
+{
     MinerConfig cfg;
     cfg.pool_enabled = true;
     cfg.pool_host = "pool.example.com";
@@ -631,7 +678,8 @@ TEST(LocalCert, ConfigValidationRejectsRequireTlsUntilNativeTlsIsImplemented) {
     EXPECT_NE(error.find("not supported yet"), std::string::npos);
 }
 
-TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
+TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys)
+{
     const std::string flat_json = R"({
   "node_id": "LEGACY-1",
   "worker_id": "legacy01",
@@ -681,8 +729,9 @@ TEST(LocalCert, ConfigParserSupportsFlatLegacyKeys) {
     EXPECT_EQ(cfg.health_emit_each_cycle, true);
 }
 
-TEST(LocalCert, ConfigParserReadsNestedTransportAndHealthFlags) {
-        const std::string nested_json = R"({
+TEST(LocalCert, ConfigParserReadsNestedTransportAndHealthFlags)
+{
+    const std::string nested_json = R"({
     "node_id": "NESTED-1",
     "worker_id": "nested01",
     "payout_address": "nested-wallet",
@@ -712,19 +761,21 @@ TEST(LocalCert, ConfigParserReadsNestedTransportAndHealthFlags) {
     }
 })";
 
-        const fs::path cfg_path = write_temp_config("nested-flags-config.json", nested_json);
-        MinerConfig cfg;
-        ASSERT_TRUE(load_config(cfg_path.string(), cfg));
+    const fs::path cfg_path = write_temp_config("nested-flags-config.json", nested_json);
+    MinerConfig cfg;
+    ASSERT_TRUE(load_config(cfg_path.string(), cfg));
 
-        EXPECT_EQ(cfg.pool_require_tls, true);
-        EXPECT_EQ(cfg.health_emit_each_cycle, true);
-        EXPECT_EQ(cfg.pool_max_reconnect_attempts, 3U);
+    EXPECT_EQ(cfg.pool_require_tls, true);
+    EXPECT_EQ(cfg.health_emit_each_cycle, true);
+    EXPECT_EQ(cfg.pool_max_reconnect_attempts, 3U);
 }
 
-TEST(LocalCert, LoggerRedactsSensitiveValues) {
+TEST(LocalCert, LoggerRedactsSensitiveValues)
+{
     const fs::path log_path = source_root() / "logs" / "redaction-unit.log";
     fs::create_directories(log_path.parent_path());
-    if (fs::exists(log_path)) {
+    if (fs::exists(log_path))
+    {
         fs::remove(log_path);
     }
 
@@ -742,9 +793,10 @@ TEST(LocalCert, LoggerRedactsSensitiveValues) {
     EXPECT_NE(out.find("***"), std::string::npos);
 }
 
-TEST(LocalCert, MinerFailsFastWhenReconnectAttemptLimitReached) {
-    const fs::path miner = find_binary("i_mine");
-    ASSERT_FALSE(miner.empty()) << "i_mine not found";
+TEST(LocalCert, MinerFailsFastWhenReconnectAttemptLimitReached)
+{
+    const fs::path miner = find_binary("hermit_miner");
+    ASSERT_FALSE(miner.empty()) << "hermit_miner not found";
 
     const fs::path cfg_path = source_root() / "logs" / "reconnect-cap-config.json";
     const fs::path miner_log = source_root() / "logs" / "miner-reconnect-cap.log";
@@ -792,11 +844,12 @@ TEST(LocalCert, MinerFailsFastWhenReconnectAttemptLimitReached) {
     EXPECT_NE(out.find("Stratum loop finished"), std::string::npos);
 }
 
-TEST(LocalCert, MinerRecoversAfterPoolComesOnline) {
-    const fs::path fake_pool = find_binary("i_mine_fake_pool");
-    const fs::path miner = find_binary("i_mine");
-    ASSERT_FALSE(fake_pool.empty()) << "i_mine_fake_pool not found";
-    ASSERT_FALSE(miner.empty()) << "i_mine not found";
+TEST(LocalCert, MinerRecoversAfterPoolComesOnline)
+{
+    const fs::path fake_pool = find_binary("hermit_miner_fake_pool");
+    const fs::path miner = find_binary("hermit_miner");
+    ASSERT_FALSE(fake_pool.empty()) << "hermit_miner_fake_pool not found";
+    ASSERT_FALSE(miner.empty()) << "hermit_miner not found";
 
     const fs::path cfg_path = source_root() / "logs" / "reconnect-recovery-config.json";
     const fs::path miner_log = source_root() / "logs" / "miner-reconnect-recovery.log";
@@ -836,17 +889,17 @@ TEST(LocalCert, MinerRecoversAfterPoolComesOnline) {
         out_cfg << cfg;
     }
 
-    auto miner_future = std::async(std::launch::async, [miner, cfg_path, miner_log]() {
+    auto miner_future = std::async(std::launch::async, [miner, cfg_path, miner_log]()
+                                   {
         const std::string miner_cmd = redirected_command(miner, "--config " + quote(cfg_path), miner_log);
-        return std::system(miner_cmd.c_str());
-    });
+        return std::system(miner_cmd.c_str()); });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(3200));
 
-    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
+    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]()
+                                    {
         const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
-        return std::system(cmd.c_str());
-    });
+        return std::system(cmd.c_str()); });
 
     const auto miner_wait_rc = miner_future.wait_for(std::chrono::seconds(20));
     ASSERT_EQ(miner_wait_rc, std::future_status::ready);
@@ -865,11 +918,12 @@ TEST(LocalCert, MinerRecoversAfterPoolComesOnline) {
     EXPECT_NE(out.find("Share accepted"), std::string::npos);
 }
 
-TEST(LocalCert, MinerRuntimeLogDoesNotLeakConfiguredPasswordMarker) {
-    const fs::path fake_pool = find_binary("i_mine_fake_pool");
-    const fs::path miner = find_binary("i_mine");
-    ASSERT_FALSE(fake_pool.empty()) << "i_mine_fake_pool not found";
-    ASSERT_FALSE(miner.empty()) << "i_mine not found";
+TEST(LocalCert, MinerRuntimeLogDoesNotLeakConfiguredPasswordMarker)
+{
+    const fs::path fake_pool = find_binary("hermit_miner_fake_pool");
+    const fs::path miner = find_binary("hermit_miner");
+    ASSERT_FALSE(fake_pool.empty()) << "hermit_miner_fake_pool not found";
+    ASSERT_FALSE(miner.empty()) << "hermit_miner not found";
 
     const fs::path cfg_path = source_root() / "logs" / "redaction-runtime-config.json";
     const fs::path miner_log = source_root() / "logs" / "miner-redaction-runtime.log";
@@ -909,10 +963,10 @@ TEST(LocalCert, MinerRuntimeLogDoesNotLeakConfiguredPasswordMarker) {
         out_cfg << cfg;
     }
 
-    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]() {
+    auto server_future = std::async(std::launch::async, [fake_pool, fake_pool_log]()
+                                    {
         const std::string cmd = redirected_command(fake_pool, "3347", fake_pool_log);
-        return std::system(cmd.c_str());
-    });
+        return std::system(cmd.c_str()); });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(350));
 

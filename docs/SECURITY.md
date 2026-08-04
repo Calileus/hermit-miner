@@ -1,4 +1,4 @@
-# i_mine Security Guide
+# hermit_miner Security Guide
 
 ## Scope
 

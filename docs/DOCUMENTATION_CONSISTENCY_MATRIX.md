@@ -6,10 +6,10 @@ Scope: README, runbook, operations docs, release checklist, security guide, arch
 
 | Topic | Source of truth | Consumed in | Status | Notes / Action |
 |---|---|---|---|---|
-| Product naming | docs/TERMINOLOGY.md | README.md, docs/* | Aligned | Use i_mine consistently |
+| Product naming | docs/TERMINOLOGY.md | README.md, docs/* | Aligned | Use hermit_miner consistently |
 | Build command | README.md | docs/RUNBOOK.md, LOCAL_CERTIFICATION_CHECKLIST.md | Aligned | CMake configure + Release build |
 | Test command timeout | README.md | docs/RUNBOOK.md, docs/SECURITY.md | Fixed | Standardized to timeout 180 |
-| Workspace path examples | Runtime workspace root | LOCAL_CERTIFICATION_CHECKLIST.md | Fixed | Updated to D:/mystuff/repos/i_mine |
+| Workspace path examples | Runtime workspace root | LOCAL_CERTIFICATION_CHECKLIST.md | Fixed | Updated to D:/mystuff/repos/hermit_miner |
 | Pre-go-live target | README.md | docs/RUNBOOK.md, PLAN.md | Aligned | pre_go_live_check naming consistent |
 | Release gate target | docs/RELEASE_CHECKLIST.md | README.md, docs/ROADMAP.md | Aligned | release_readiness_check consistent |
 | Local quality target | CONTRIBUTING.md | README.md, docs/ROADMAP.md | Aligned | local_quality_check consistent |
@@ -26,8 +26,8 @@ Scope: README, runbook, operations docs, release checklist, security guide, arch
    - Resolution: standardized security guide to timeout 180.
 
 2. Workspace path mismatch:
-   - Previous: LOCAL_CERTIFICATION_CHECKLIST.md referenced D:/mystuff/i_mine.
-   - Resolution: corrected to D:/mystuff/repos/i_mine.
+   - Previous: LOCAL_CERTIFICATION_CHECKLIST.md referenced D:/mystuff/hermit_miner.
+   - Resolution: corrected to D:/mystuff/repos/hermit_miner.
 
 ## Remaining Documentation Risks
 

@@ -1,4 +1,4 @@
-# i_mine Operations Matrix
+# hermit_miner Operations Matrix
 
 ## Purpose
 

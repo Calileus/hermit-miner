@@ -1,7 +1,7 @@
 # Enterprise Readiness Report
 
 Date: 2026-07-31  
-Repository: i_mine
+Repository: hermit_miner
 
 This report is based on direct inspection of source, configs, docs, scripts, and CI workflows, plus build/test verification.
 
@@ -12,8 +12,8 @@ This report is based on direct inspection of source, configs, docs, scripts, and
 ### System Inventory
 
 - Runtime executables
-	- i_mine: standalone miner entrypoint and lifecycle orchestration.
-	- i_mine_fake_pool: local deterministic Stratum simulator for offline integration.
+	- hermit_miner: standalone miner entrypoint and lifecycle orchestration.
+	- hermit_miner_fake_pool: local deterministic Stratum simulator for offline integration.
 - Core library modules
 	- miner_cli: CLI parse/override contract.
 	- miner_config: JSON parsing, validation, environment secret override.
@@ -30,13 +30,13 @@ This report is based on direct inspection of source, configs, docs, scripts, and
 
 ```mermaid
 flowchart LR
-	Operator -->|CLI + config| Miner[i_mine]
+	Operator -->|CLI + config| Miner[hermit_miner]
 	Miner --> Config[miner_config]
 	Miner --> Runtime[miner_runtime]
 	Runtime --> Stratum[stratum client]
 	Runtime --> Hash[sha256 + job difficulty]
 	Runtime --> Logger[json logger]
-	Stratum <--> Pool[(Real Pool or i_mine_fake_pool)]
+	Stratum <--> Pool[(Real Pool or hermit_miner_fake_pool)]
 	Runtime --> Health[health snapshot file]
 	Logger --> Logs[(logs/*.log)]
 	CI[GitHub Actions] --> Build[CMake build + CTest]
@@ -449,7 +449,7 @@ Coverage by test type:
 
 ### 1) Executive Summary
 
-i_mine is a focused, maintainable miner scaffold with strong local verification and documented operational gates. After this pass, reliability and gate determinism improved materially. Remaining enterprise blockers are mainly secure transport, advanced observability, and operational evidence maturity.
+hermit_miner is a focused, maintainable miner scaffold with strong local verification and documented operational gates. After this pass, reliability and gate determinism improved materially. Remaining enterprise blockers are mainly secure transport, advanced observability, and operational evidence maturity.
 
 ### 2) Architecture Assessment
 

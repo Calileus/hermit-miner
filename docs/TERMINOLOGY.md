@@ -1,4 +1,4 @@
-# i_mine Terminology Source of Truth
+# hermit_miner Terminology Source of Truth
 
 Purpose: single canonical naming reference for code, docs, and release communications.
 
@@ -6,10 +6,10 @@ Purpose: single canonical naming reference for code, docs, and release communica
 
 | Canonical term | Use this wording | Avoid |
 |---|---|---|
-| Product | i_mine | i mine, IMINE |
-| Miner executable | i_mine | miner app, miner service |
-| Fake pool executable | i_mine_fake_pool | test pool, mock pool binary |
-| Library target | i_mine_lib | runtime library |
+| Product | hermit_miner | i mine, IMINE |
+| Miner executable | hermit_miner | miner app, miner service |
+| Fake pool executable | hermit_miner_fake_pool | test pool, mock pool binary |
+| Library target | hermit_miner_lib | runtime library |
 
 ## Runtime and Feature Terms
 

@@ -1,5 +1,5 @@
 ﻿cmake_minimum_required(VERSION 3.16)
-project(i_mine_cpp LANGUAGES CXX)
+project(hermit_miner_cpp LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -72,7 +72,7 @@ add_custom_target(release_summary
 )
 
 # Library components
-add_library(i_mine_lib
+add_library(hermit_miner_lib
     src/lib/miner_cli.cpp
     src/lib/job.cpp
     src/lib/logger.cpp
@@ -82,31 +82,31 @@ add_library(i_mine_lib
     src/sha256.cpp
 )
 
-target_include_directories(i_mine_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(hermit_miner_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # Standalone independent miner executable
-add_executable(i_mine
+add_executable(hermit_miner
     src/miner.cpp
 )
-target_link_libraries(i_mine i_mine_lib)
+target_link_libraries(hermit_miner hermit_miner_lib)
 
-add_executable(i_mine_fake_pool
+add_executable(hermit_miner_fake_pool
     src/fake_pool.cpp
 )
 
 if(WIN32)
-    target_link_libraries(i_mine ws2_32)
-    target_link_libraries(i_mine_fake_pool ws2_32)
+    target_link_libraries(hermit_miner ws2_32)
+    target_link_libraries(hermit_miner_fake_pool ws2_32)
 endif()
 
 if(MSVC)
-    target_compile_options(i_mine_lib PRIVATE /W4)
-    target_compile_options(i_mine PRIVATE /W4)
-    target_compile_options(i_mine_fake_pool PRIVATE /W4)
+    target_compile_options(hermit_miner_lib PRIVATE /W4)
+    target_compile_options(hermit_miner PRIVATE /W4)
+    target_compile_options(hermit_miner_fake_pool PRIVATE /W4)
 else()
-    target_compile_options(i_mine_lib PRIVATE -Wall -Wextra -Wpedantic)
-    target_compile_options(i_mine PRIVATE -Wall -Wextra -Wpedantic)
-    target_compile_options(i_mine_fake_pool PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(hermit_miner_lib PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(hermit_miner PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(hermit_miner_fake_pool PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 if(BUILD_TESTING)
@@ -122,22 +122,22 @@ if(BUILD_TESTING)
     )
     FetchContent_MakeAvailable(googletest)
 
-    add_executable(i_mine_tests
+    add_executable(hermit_miner_tests
         src/test/local_cert_tests.cpp
     )
-    target_link_libraries(i_mine_tests PRIVATE i_mine_lib GTest::gtest_main)
-    target_compile_definitions(i_mine_tests PRIVATE IMINE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+    target_link_libraries(hermit_miner_tests PRIVATE hermit_miner_lib GTest::gtest_main)
+    target_compile_definitions(hermit_miner_tests PRIVATE IMINE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
     if(WIN32)
-        target_link_libraries(i_mine_tests PRIVATE ws2_32)
+        target_link_libraries(hermit_miner_tests PRIVATE ws2_32)
     endif()
 
     if(MSVC)
-        target_compile_options(i_mine_tests PRIVATE /W4)
+        target_compile_options(hermit_miner_tests PRIVATE /W4)
     else()
-        target_compile_options(i_mine_tests PRIVATE -Wall -Wextra -Wpedantic)
+        target_compile_options(hermit_miner_tests PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 
     include(GoogleTest)
-    gtest_discover_tests(i_mine_tests)
+    gtest_discover_tests(hermit_miner_tests)
 endif()

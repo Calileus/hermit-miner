@@ -96,7 +96,7 @@ compile_commands.json
 Thumbs.db
 
 # ------------------------------------------------------------
-# i_mine project-specific
+# hermit_miner project-specific
 # ------------------------------------------------------------
 logs/
 config/*.local.json

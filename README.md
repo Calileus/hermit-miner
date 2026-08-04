@@ -1,11 +1,11 @@
-﻿# i_mine
+﻿# hermit_miner
 
 This repo is a lean standalone miner scaffold for running multiple independent machines against one pool account with unique worker IDs.
 
 Current scope:
 
-- one miner executable: i_mine
-- one local fake pool executable: i_mine_fake_pool
+- one miner executable: hermit_miner
+- one local fake pool executable: hermit_miner_fake_pool
 - one config file per machine
 - CPU double-SHA256 proof-of-work loop
 - offline Stratum subscribe/authorize/notify/submit flow
@@ -76,13 +76,13 @@ cmake --build build --config Release
 2) Start local fake pool (Terminal A)
 
 ```sh
-./build/Release/i_mine_fake_pool 3333
+./build/Release/hermit_miner_fake_pool 3333
 ```
 
 3) Start miner against local pool (Terminal B)
 
 ```sh
-./build/Release/i_mine --config config/miner-local-stratum-test.json
+./build/Release/hermit_miner --config config/miner-local-stratum-test.json
 ```
 
 4) Confirm expected signals in miner output
@@ -174,17 +174,17 @@ Example (PowerShell):
 
 ```powershell
 $env:IMINE_POOL_PASSWORD = "your-real-password"
-./build/Release/i_mine --config config/miner-local-stratum.json
+./build/Release/hermit_miner --config config/miner-local-stratum.json
 ```
 
 ## Run miner
 
 ```sh
 # Windows multi-config generators
-./build/Release/i_mine --config config/miner-local-stratum.json
+./build/Release/hermit_miner --config config/miner-local-stratum.json
 
 # Linux/macOS single-config generators
-./build/i_mine --config config/miner-local-stratum.json
+./build/hermit_miner --config config/miner-local-stratum.json
 ```
 
 ### Long-running mode
@@ -198,17 +198,17 @@ $env:IMINE_POOL_PASSWORD = "your-real-password"
 CLI overrides still apply:
 
 ```sh
-./build/Release/i_mine --config config/miner-local-stratum.json --threads 4 --bits 20 --prefix test-job
+./build/Release/hermit_miner --config config/miner-local-stratum.json --threads 4 --bits 20 --prefix test-job
 ```
 
 ## Offline Stratum test
 
 ```sh
 # Terminal A
-./build/Release/i_mine_fake_pool 3333
+./build/Release/hermit_miner_fake_pool 3333
 
 # Terminal B
-./build/Release/i_mine --config config/miner-local-stratum.json
+./build/Release/hermit_miner --config config/miner-local-stratum.json
 ```
 
 ## Automated local certification

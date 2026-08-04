@@ -1,7 +1,7 @@
 # Checkpoint Release Report
 
 Date: 2026-08-01  
-Repository: i_mine  
+Repository: hermit_miner  
 Objective: highest-confidence shippable checkpoint in minimum practical time.
 
 ---
@@ -80,8 +80,8 @@ Produced artifacts:
 - docs/TERMINOLOGY.md
 
 Normalization coverage:
-- Product naming: i_mine
-- Executable naming: i_mine, i_mine_fake_pool
+- Product naming: hermit_miner
+- Executable naming: hermit_miner, hermit_miner_fake_pool
 - Validation commands: local_quality_check, release_readiness_check, pre_go_live_check
 - Secret key naming: pool.password_env
 - TLS guardrail term: pool.require_tls

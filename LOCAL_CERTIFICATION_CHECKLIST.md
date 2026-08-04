@@ -14,7 +14,7 @@ Pass policy:
 Required:
 - Windows or Linux host with CMake and C++ toolchain.
 - No internet required.
-- Project root opened at D:/mystuff/repos/i_mine (or equivalent).
+- Project root opened at D:/mystuff/repos/hermit_miner (or equivalent).
 
 Build command:
 - cmake -S . -B build
@@ -23,8 +23,8 @@ Build command:
 Build pass criteria:
 - Exit code 0.
 - Binaries exist:
-  - build/Release/i_mine(.exe)
-  - build/Release/i_mine_fake_pool(.exe)
+  - build/Release/hermit_miner(.exe)
+  - build/Release/hermit_miner_fake_pool(.exe)
 
 ## Test Matrix
 
@@ -41,7 +41,7 @@ Expected pass values:
 ### LC-002 Fake Pool Boot (Mandatory)
 
 Command:
-- build/Release/i_mine_fake_pool 3333
+- build/Release/hermit_miner_fake_pool 3333
 
 Expected pass values:
 - Log contains: [fake-pool] listening on 127.0.0.1:3333
@@ -53,7 +53,7 @@ Setup:
 - Start LC-002 in terminal A.
 
 Command (terminal B):
-- build/Release/i_mine --config config/miner-local-stratum.json
+- build/Release/hermit_miner --config config/miner-local-stratum.json
 
 Expected pass values in miner logs:
 - Connected to pool: exactly 1 per session start.
@@ -109,7 +109,7 @@ Setup:
 - Start miner first with fake pool down.
 
 Command:
-- build/Release/i_mine --config config/miner-local-stratum.json
+- build/Release/hermit_miner --config config/miner-local-stratum.json
 
 Expected pass values while pool is down:
 - Warning log repeated: Stratum cycle failed; reconnecting
