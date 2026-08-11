@@ -24,9 +24,10 @@ jobs:
         run: |
           cmake --version
           ctest --version
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            c++ --version
-          fi
+
+      - name: Compiler preflight (Linux)
+        if: runner.os == 'Linux'
+        run: c++ --version
 
       - name: Secret Scan (Repository)
         run: cmake -DPROJECT_ROOT=. -P scripts/ci-secret-scan.cmake
