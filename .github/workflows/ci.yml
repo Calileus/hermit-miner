@@ -20,6 +20,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Toolchain preflight
+        run: |
+          cmake --version
+          ctest --version
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            c++ --version
+          fi
+
       - name: Secret Scan (Repository)
         run: cmake -DPROJECT_ROOT=. -P scripts/ci-secret-scan.cmake
 
@@ -47,6 +55,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ctest-logs-${{ matrix.os }}
+          if-no-files-found: ignore
           path: |
             build/ci/Testing/**
             logs/**
