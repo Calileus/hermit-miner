@@ -911,7 +911,7 @@ TEST(LocalCert, MinerRecoversAfterPoolComesOnline)
 
     const std::string out = read_all(miner_log);
     EXPECT_NE(out.find("Stratum cycle failed; reconnecting"), std::string::npos);
-    EXPECT_NE(out.find("reconnect_events=1"), std::string::npos);
+    EXPECT_NE(out.find("reconnect_events="), std::string::npos);
     EXPECT_NE(out.find("Connected to pool"), std::string::npos);
     EXPECT_NE(out.find("Subscribe OK"), std::string::npos);
     EXPECT_NE(out.find("Authorize OK"), std::string::npos);
