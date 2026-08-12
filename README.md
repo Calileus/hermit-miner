@@ -2,6 +2,10 @@
 
 This repo is a lean standalone miner scaffold for running multiple independent machines against one pool account with unique worker IDs.
 
+## Release v0.0.0
+
+See **[docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)** for release notes, features, limitations, and deployment checklist.
+
 Current scope:
 
 - one miner executable: hermit_miner
